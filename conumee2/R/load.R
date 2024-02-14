@@ -85,7 +85,7 @@ setMethod("CNV.load", signature(input = "data.frame"), function(input,
 
 #' @rdname CNV.load
 setMethod("CNV.load", signature(input = "matrix"), function(input, names = NULL,...) {
-    CNV.load(as.data.frame(input), anno, names)
+    CNV.load(as.data.frame(input), names)
 })
 
 #' @rdname CNV.load
