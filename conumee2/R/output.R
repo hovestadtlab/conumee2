@@ -219,7 +219,7 @@ setMethod("CNV.genomeplot", signature(object = "CNV.analysis"), function(object,
 
     if(any(object@anno@detail$name %in% sig.genes)) {
 
-           c_genes <- object@anno@detail[which(object@anno@detail$name %in% object@detail$sig.genes[[i]])]
+           c_genes <- object@anno@detail[which(object@anno@detail$name %in% sig.genes)]
            mcols(c_genes) <- data.frame(SYMBOL = c_genes$name)
            names(c_genes) <- c_genes$SYMBOL
 
