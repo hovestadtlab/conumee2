@@ -219,7 +219,7 @@ setMethod("CNV.genomeplot", signature(object = "CNV.analysis"), function(object,
 
     if(any(object@anno@detail$name %in% sig.genes)) {
 
-           c_genes <- object@anno@detail[which(object@anno@detail$name %in% object@detail$sig.genes[[i]])]
+           c_genes <- object@anno@detail[which(object@anno@detail$name %in% sig.genes)]
            mcols(c_genes) <- data.frame(SYMBOL = c_genes$name)
            names(c_genes) <- c_genes$SYMBOL
 
@@ -265,7 +265,7 @@ setMethod("CNV.genomeplot", signature(object = "CNV.analysis"), function(object,
 
       cgenes.ratio <- sapply(split(object@fit$ratio[d2[, "probe"],i], d2[, "detail"]), median, na.rm = TRUE)[names(c_genes)]
       cgenes.ratio <- cgenes.ratio - object@bin$shift[i]
-      cgenes.ratio.plot <- sort(abs(cgenes.ratio), decreasing = TRUE)[1:nsig_cgenes]
+      cgenes.ratio.plot <- cgenes.ratio[order(abs(cgenes.ratio), decreasing = TRUE)[1:min(nsig_cgenes, length(cgenes.ratio))]]
       cgenes.ratio.plot[cgenes.ratio.plot < ylim[1]] <- ylim[1]
       cgenes.ratio.plot[cgenes.ratio.plot > ylim[2]] <- ylim[2]
       cgenes.ratio.above <- (cgenes.ratio.plot > 0 & cgenes.ratio.plot < 0.85) |
@@ -1115,10 +1115,10 @@ setMethod("CNV.write", signature(object = "CNV.analysis"), function(object, file
       }
     }
 } else if (w == 7){
-  if (length(object@detail$sig.genes) == 0)
+  if (length(object@detail$amp.genes) == 0)
     stop("Please run CNV.focal")
   x <- vector(mode='list', length = 3)
-  x[[1]] <- object@detail$sig.genes
+  x[[1]] <- c(object@detail$amp.genes, object@detail$del.genes)
   x[[2]] <- object@detail$del.bins
   x[[3]] <- object@detail$amp.bins
   names(x) <- c("significant.genes", "bins.losses", "bins.gains")

@@ -345,8 +345,8 @@ setMethod("CNV.focal", signature(object = "CNV.analysis"), function(object, conf
 
     d1 <- as.matrix(findOverlaps(query = cgenes, subject = anno@probes))
     d2 <- data.frame(gene = values(cgenes)$SYMBOL[d1[,"queryHits"]], probe = names(anno@probes[d1[, "subjectHits"]]),stringsAsFactors = FALSE)
-    cgenes.ratio <- sapply(split(x@fit$ratio[d2[, "probe"],i], d2[, "gene"]), median, na.rm = TRUE)[values(cgenes)$SYMBOL]
-    cgenes.ratio <- cgenes.ratio - x@bin$shift[i]
+    cgenes.ratio <- sapply(split(object@fit$ratio[d2[, "probe"],i], d2[, "gene"]), median, na.rm = TRUE)[values(cgenes)$SYMBOL]
+    cgenes.ratio <- cgenes.ratio - object@bin$shift[i]
 
     amp.genes <- names(which(cgenes.ratio >= amp_t))
     del.genes <- names(which(cgenes.ratio <= del_t))
