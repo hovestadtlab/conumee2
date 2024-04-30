@@ -1117,11 +1117,12 @@ setMethod("CNV.write", signature(object = "CNV.analysis"), function(object, file
 } else if (w == 7){
   if (length(object@detail$sig.genes) == 0)
     stop("Please run CNV.focal")
-  x <- vector(mode='list', length = 3)
-  x[[1]] <- object@detail$sig.genes
-  x[[2]] <- object@detail$del.bins
+  x <- vector(mode='list', length = 4)
+  x[[1]] <- object@detail$amp.genes
+  x[[2]] <- object@detail$del.genes
   x[[3]] <- object@detail$amp.bins
-  names(x) <- c("significant.genes", "bins.losses", "bins.gains")
+  x[[4]] <- object@detail$del.bins
+  names(x) <- c("genes.gains", "genes.loss", "bins.gains", "bins.loss")
 
   } else{
     stop("value for what is ambigious.")
