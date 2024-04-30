@@ -12,7 +12,6 @@ CNV.focal(object, ...)
   conf = 0.95,
   R = 100,
   blockLength = 5e+05,
-  minoverlap = 1000L,
   proportionLength = TRUE,
   ...
 )
@@ -28,9 +27,9 @@ CNV.focal(object, ...)
 
 \item{blockLength}{numeric. Parameter for the \code{bootRanges} function. The length (in basepairs) of the blocks for segmented block bootstrapping. Default to \code{500000}.}
 
-\item{minoverlap}{integer. The function determines the bins that overlap with the genes of interest. Which minimum number of basepairs should be considered for an overlap? Defaul to \code{1000L}.}
-
 \item{proportionLength}{logical. From the \code{nullranges} package: for the segmented block bootstrap, whether to use scaled block lengths, (scaling by the proportion of the segmentation state out of the total genome length)}
+
+\item{minoverlap}{integer. The function determines the bins that overlap with the genes of interest. Which minimum number of basepairs should be considered for an overlap? Defaul to \code{1000L}.}
 }
 \value{
 A \code{CNV.analysis} object with significantly altered bins and genes from the Cancer Gene Census (curated by the Sanger Institute).

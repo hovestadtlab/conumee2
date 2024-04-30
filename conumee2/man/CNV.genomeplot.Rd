@@ -18,7 +18,7 @@ CNV.genomeplot(object, ...)
   output = "output",
   directory = getwd(),
   ylim = c(-1.25, 1.25),
-  bins_cex = "standardized",
+  bins_cex = 0.75,
   set_par = TRUE,
   width = 12,
   height = 6,
@@ -49,7 +49,7 @@ CNV.genomeplot(object, ...)
 
 \item{ylim}{numeric vector. The y limits of the plot. Default to \code{c(-1.25, 1.25)}.}
 
-\item{bins_cex}{character. The size of the individual bin dots is reversely proportional its variance of included probes' log2-ratios. Choose either \code{standardized} for fixed dot sizes (to make plots from different samples comparable) or \code{sample_level} (to scale the dot sizes for each sample individually). Default to \code{standardized}.}
+\item{bins_cex}{Default to \code{0.75}. Alternatively, the size of individual bin dots is inversely proportional to its variance of included probes' log2-ratios. Choose either \code{standardized} for fixed dot sizes (to make plots from different samples comparable) or \code{sample_level} (to scale the dot sizes for each sample individually)}
 
 \item{set_par}{logical. Use recommended graphical parameters for \code{oma} and \code{mar}? Defaults to \code{TRUE}. Original parameters are restored afterwards.}
 
