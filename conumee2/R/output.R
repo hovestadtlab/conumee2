@@ -265,7 +265,7 @@ setMethod("CNV.genomeplot", signature(object = "CNV.analysis"), function(object,
 
       cgenes.ratio <- sapply(split(object@fit$ratio[d2[, "probe"],i], d2[, "detail"]), median, na.rm = TRUE)[names(c_genes)]
       cgenes.ratio <- cgenes.ratio - object@bin$shift[i]
-      cgenes.ratio.plot <- sort(abs(cgenes.ratio), decreasing = TRUE)[1:nsig_cgenes]
+      cgenes.ratio.plot <- cgenes.ratio[order(abs(cgenes.ratio), decreasing = TRUE)[1:min(nsig_cgenes, length(cgenes.ratio))]]
       cgenes.ratio.plot[cgenes.ratio.plot < ylim[1]] <- ylim[1]
       cgenes.ratio.plot[cgenes.ratio.plot > ylim[2]] <- ylim[2]
       cgenes.ratio.above <- (cgenes.ratio.plot > 0 & cgenes.ratio.plot < 0.85) |
