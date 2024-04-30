@@ -67,7 +67,7 @@ setGeneric("CNV.genomeplot", function(object, ...) {
 #' @rdname CNV.genomeplot
 setMethod("CNV.genomeplot", signature(object = "CNV.analysis"), function(object, chr = "all", centromere = TRUE, detail = TRUE,
            main = NULL, sig_cgenes = FALSE, nsig_cgenes = 3, output = "output", directory = getwd(), ylim = c(-1.25, 1.25),
-           bins_cex = "standardized", set_par = TRUE,
+           bins_cex = 0.75, set_par = TRUE,
            width = 12, height = 6, res = 720, cols = c("darkblue","darkblue", "lightgrey", "#F16729", "#F16729")){
 
   # if(length(object@fit) == 0) stop('fit unavailable, run CNV.fit')
@@ -153,15 +153,14 @@ setMethod("CNV.genomeplot", signature(object = "CNV.analysis"), function(object,
        p_size[p_size >= 45 & p_size <52.5] <- 0.7
        p_size[p_size >= 52.5 & p_size <60] <- 0.8
        p_size[p_size > 60] <- 0.9
-     }
-
-     if(bins_cex == "sample_level") {
+     } else if(bins_cex == "sample_level") {
        b <- boxplot.stats(p_size)
        outliers <- names(b$out)
        p_size[outliers] <- as.numeric(b$stats[5])
        p_size <- round(0.7*((p_size - min(p_size))/(max(p_size) - min(p_size)))+ 0.2, digits = 2) #scaling from 0.1:0.8 for cex using predefined bins to enable comparability between plots
+     } else {
+       p_size <- bins_cex
      }
-
 
      bin.ratio.cols <- apply(colorRamp(cols)((bin.ratio + max(abs(ylim)))/(2 *max(abs(ylim)))),
                              1, function(x) rgb(x[1], x[2], x[3], maxColorValue = 255))
