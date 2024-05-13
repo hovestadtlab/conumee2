@@ -242,8 +242,9 @@ setMethod("CNV.detail", signature(object = "CNV.analysis"), function(object) {
 NULL
 
 #' CNV.focal
-#' @description This function provides a statistical assessment for focal CNVs.
+#' @description This function provides a statistical assessment for the regions of interest that are defined as \code{detail_regions} in the annotation object.
 #' @param object \code{CNV.analysis} object.
+#' @param sig_cgenes logical. Should the genes from the Cancer Gene Census be assessed? Default to \code{FALSE}.
 #' @param conf numeric. Confidence level to calculate to determine the log2-threshold for high-level alterations. Choose between \code{0.95} and \code{0.99}. Default to \code{0.95}.
 #' @param R numeric. Parameter for the \code{bootRanges} function. The number of bootstrap samples to generate. Default to \code{100}.
 #' @param blockLength numeric. Parameter for the \code{bootRanges} function. The length (in basepairs) of the blocks for segmented block bootstrapping. Default to \code{500000}.
@@ -266,18 +267,26 @@ setGeneric("CNV.focal", function(object, ...) {
 })
 
 #' @rdname CNV.focal
-setMethod("CNV.focal", signature(object = "CNV.analysis"), function(object, conf = 0.95, R = 100, blockLength = 500000, proportionLength = TRUE, ...){
+setMethod("CNV.focal", signature(object = "CNV.analysis"), function(object, sig_cgenes = FALSE, conf = 0.95, R = 100, blockLength = 500000, proportionLength = TRUE, ...){
   if(ncol(object@anno@genome) == 2) {
     stop("CNV.focal is not compatible with mouse arrays.")
   }
 
-  data("consensus_cancer_genes_hg19")
-  data("genes")
+  if(!length(object@anno@detail) >= 1){
+    stop("Please run CNV.detail() to specify genes of interest.")
+  }
 
+  data("consensus_cancer_genes_hg19")
+
+  threshold.amp <- vector(mode='list', length=ncol(object@fit$ratio))
+  threshold.del <- vector(mode='list', length=ncol(object@fit$ratio))
   amp_bins <- vector(mode='list', length=ncol(object@fit$ratio))
   del_bins <- vector(mode='list', length=ncol(object@fit$ratio))
-  amp_genes <- vector(mode='list', length=ncol(object@fit$ratio))
-  del_genes <- vector(mode='list', length=ncol(object@fit$ratio))
+  detail.regions.amp <- vector(mode='list', length=ncol(object@fit$ratio))
+  detail.regions.del <- vector(mode='list', length=ncol(object@fit$ratio))
+  cancer.genes.amp <- vector(mode='list', length=ncol(object@fit$ratio))
+  cancer.genes.del <- vector(mode='list', length=ncol(object@fit$ratio))
+
   for(i in 1:ncol(object@fit$ratio)){
 
     message(paste(colnames(object@fit$ratio)[i]), " (",round(i/ncol(object@fit$ratio)*100, digits = 3), "%", ")", sep = "")
@@ -299,8 +308,7 @@ setMethod("CNV.focal", signature(object = "CNV.analysis"), function(object, conf
     bins$state <- km$cluster
     seqinfo(bins) <- Seqinfo(genome = "hg19")
 
-
-    seg <- lapply(seq_len(3), function(s){ # Combine nearby regions within same states
+    seg <- lapply(seq_len(3), function(s){
       x <- reduce(bins[bins$state == s])
       mcols(x)$state <- s
       x
@@ -308,65 +316,64 @@ setMethod("CNV.focal", signature(object = "CNV.analysis"), function(object, conf
 
     seg <- c(seg[[1]], seg[[2]], seg[[3]])
 
-    # if(min(km$size)>=20){
-    #   boots <- bootRanges(bins, blockLength = blockLength, R = R, seg = seg, exclude = object@anno@exclude, proportionLength = FALSE)
-    # } else{ #bootRanges can't deal with clusters that are too small (<20), proportionLength = TRUE then
-    #   message("One kmeans cluster is very small (<20), setting proportionLength=TRUE.")
-    #   boots <- bootRanges(bins, blockLength = blockLength, R = R, seg = seg, exclude = object@anno@exclude, proportionLength = TRUE)
-    # }
-
     boots <- bootRanges(bins, blockLength = blockLength, R = R, seg = seg, exclude = object@anno@exclude, proportionLength = proportionLength)
 
     t <- round(length(boots) * (1-conf), digits = 0)/2
     del_t <- round(sort(boots$log2)[t], digits = 3)
     amp_t <- round(sort(boots$log2, decreasing =  TRUE)[t], digits = 3)
+    threshold.amp[[i]] <- amp_t
+    threshold.del[[i]] <- del_t
 
     bins.total <- object@bin$ratio[[i]] - object@bin$shift[i]
     bins.amp <- sort(bins.total[bins.total >= amp_t], decreasing = TRUE)
     bins.del <- sort(bins.total[bins.total <= del_t])
-    sig.bins <- sort(c(abs(bins.amp), abs(bins.del)), decreasing = TRUE)
 
     amp_bins[[i]] <- bins.amp
     del_bins[[i]] <- bins.del
 
-    genes.n <- setdiff(cancer_genes$SYMBOL, genes$SYMBOL)
-    genes.c <- sort(c(genes, cancer_genes[genes.n]))
+    #Detail regions are subjected to the dynamic thresholds
 
-    if(length(object@anno@detail) >= 1){
-      dif <- setdiff(genes.c$SYMBOL, object@anno@detail$name)
-      details <- object@anno@detail
-      mcols(details) <- data.frame(SYMBOL = object@anno@detail$name)
-      cgenes <- c(details, genes.c[dif])
+    detail.genes <- object@anno@detail
+    d1 <- as.matrix(findOverlaps(query = detail.genes, subject = object@anno@probes))
+    d2 <- data.frame(gene = values(detail.genes)$name[d1[,"queryHits"]], probe = names(object@anno@probes[d1[, "subjectHits"]]),stringsAsFactors = FALSE)
+    detail.genes.ratio <- sapply(split(object@fit$ratio[d2[, "probe"],i], d2[, "gene"]), median, na.rm = TRUE)[values(detail.genes)$name]
+    detail.genes.ratio <- detail.genes.ratio - object@bin$shift[i]
+
+    detail.regions.amp[[i]] <- sort(detail.genes.ratio[which(detail.genes.ratio >= amp_t)], decreasing = TRUE)
+    detail.regions.del[[i]] <- sort(detail.genes.ratio[which(detail.genes.ratio <= del_t)])
+
+    #Genes from Cancer Gene Census are subjected to the dynamic thresholds
+
+    if(sig_cgenes){
+
+      cancer.genes <- cancer_genes[setdiff(cancer_genes$SYMBOL, object@anno@detail$name)]
+      d1 <- as.matrix(findOverlaps(query = cancer.genes, subject = object@anno@probes))
+      d2 <- data.frame(gene = values(cancer.genes)$SYMBOL[d1[,"queryHits"]], probe = names(object@anno@probes[d1[, "subjectHits"]]),stringsAsFactors = FALSE)
+      cancer.genes.ratio <- sapply(split(object@fit$ratio[d2[, "probe"],i], d2[, "gene"]), median, na.rm = TRUE)[values(cancer.genes)$SYMBOL]
+      cancer.genes.ratio <- cancer.genes.ratio - object@bin$shift[i]
+
+      cancer.genes.amp[[i]] <- sort(cancer.genes.ratio[which(cancer.genes.ratio >= amp_t)], decreasing = TRUE)
+      cancer.genes.del[[i]] <- sort(cancer.genes.ratio[which(cancer.genes.ratio <= del_t)])
     }
+  }
 
-    if(length(object@anno@detail) == 0){
-      cgenes <- genes.c
-    }
-
-    d1 <- as.matrix(findOverlaps(query = cgenes, subject = object@anno@probes))
-    d2 <- data.frame(gene = values(cgenes)$SYMBOL[d1[,"queryHits"]], probe = names(object@anno@probes[d1[, "subjectHits"]]),stringsAsFactors = FALSE)
-    cgenes.ratio <- sapply(split(object@fit$ratio[d2[, "probe"],i], d2[, "gene"]), median, na.rm = TRUE)[values(cgenes)$SYMBOL]
-    cgenes.ratio <- cgenes.ratio - object@bin$shift[i]
-
-    amp.genes <- names(which(cgenes.ratio >= amp_t))
-    del.genes <- names(which(cgenes.ratio <= del_t))
-
-
-    amp_genes[[i]] <- amp.genes
-    del_genes[[i]] <- del.genes
-    }
-
-  names(del_bins) <- colnames(object@fit$ratio)
+  names(threshold.amp) <- colnames(object@fit$ratio)
+  names(threshold.del) <- colnames(object@fit$ratio)
   names(amp_bins) <- colnames(object@fit$ratio)
-  names(amp_genes) <- colnames(object@fit$ratio)
-  names(del_genes) <- colnames(object@fit$ratio)
+  names(del_bins) <- colnames(object@fit$ratio)
+  names(detail.regions.amp) <- colnames(object@fit$ratio)
+  names(detail.regions.del) <- colnames(object@fit$ratio)
+  names(cancer.genes.amp) <- colnames(object@fit$ratio)
+  names(cancer.genes.del) <- colnames(object@fit$ratio)
 
-
-  object@detail$del.bins <- del_bins
+  object@detail$threshold.amp <- threshold.amp
+  object@detail$threshold.del <- threshold.del
   object@detail$amp.bins <- amp_bins
-  object@detail$amp.genes <- amp_genes
-  object@detail$del.genes <- del_genes
-
+  object@detail$del.bins <- del_bins
+  object@detail$amp.detail.regions <- detail.regions.amp
+  object@detail$del.detail.regions <- detail.regions.del
+  object@detail$amp.cancer.genes <- cancer.genes.amp
+  object@detail$del.cancer.genes <- cancer.genes.del
 
   return(object)
 
