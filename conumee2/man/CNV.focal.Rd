@@ -45,10 +45,14 @@ This function should facilitate the detection of diagnostically relevant CNVs th
 }
 \examples{
 
-x <- CNV.focal(x, conf = 0.95, R = 100, blockLength = 500000, minoverlap = 10000L)
-x@detail$del.bins  #bins that are part of high-level deletions.
-x@detail$amp.bins  #bins that are part of high-level amplifications.
-x@detail$sig.genes #significantly altered genes from the Cancer Gene Census and the predefined detail_regions.
+x <- CNV.focal(x, sig_cgenes = TRUE, conf = 0.95, R = 100, blockLength = 500000, minoverlap = 10000L)
+x@detail$del.bins  #bins that are part of deletions.
+x@detail$amp.bins  #bins that are part of amplifications.
+x@detail$del.detail.regions #deleted predefined regions
+x@detail$amp.detail.regions #amplified predefined regions
+x@detail$del.cancer.genes #deleted genes from the Cancer Gene Census
+x@detail$amp.cancer.genes #amplified genes from the Cancer Gene Census
+
 
 }
 \author{
