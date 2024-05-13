@@ -15,6 +15,7 @@ CNV.genomeplot(object, ...)
   main = NULL,
   sig_cgenes = FALSE,
   nsig_cgenes = 3,
+  focal_thresholds = TRUE,
   output = "output",
   directory = getwd(),
   ylim = c(-1.25, 1.25),
@@ -41,7 +42,9 @@ CNV.genomeplot(object, ...)
 
 \item{sig_cgenes}{logical. Should the significant genes from the Cancer Gene Census be plotted that were identified with \code{CNV.focal}? Default to \code{FALSE}.}
 
-\item{nsig_cgenes}{numeric. How many significant genes identified with \code{CNV.focal} should be plotted? Default to \code{3}.}
+\item{nsig_cgenes}{numeric. How many significant genes identified with \code{CNV.focal} should be plotted? Default to \code{3}. We do not recommend using values higher than 5 in order to avoid false positive results.}
+
+\item{focal_thresholds}{logical. Should the dynamic thresholds be plotted? Default to \code{TRUE}. \code{sig_cgenes} must be \code{TRUE}.}
 
 \item{output}{character. Choose between \code{output} (to display it in the graphical output) or \code{pdf} and \code{png} to save it. Defaults to \code{output}.}
 

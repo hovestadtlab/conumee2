@@ -9,6 +9,7 @@ CNV.focal(object, ...)
 
 \S4method{CNV.focal}{CNV.analysis}(
   object,
+  sig_cgenes = FALSE,
   conf = 0.95,
   R = 100,
   blockLength = 5e+05,
@@ -20,6 +21,8 @@ CNV.focal(object, ...)
 \item{object}{\code{CNV.analysis} object.}
 
 \item{...}{Additional parameters (\code{CNV.detailplot} generic, currently not used).}
+
+\item{sig_cgenes}{logical. Should the genes from the Cancer Gene Census be assessed? Default to \code{FALSE}.}
 
 \item{conf}{numeric. Confidence level to calculate to determine the log2-threshold for high-level alterations. Choose between \code{0.95} and \code{0.99}. Default to \code{0.95}.}
 
@@ -35,7 +38,7 @@ CNV.focal(object, ...)
 A \code{CNV.analysis} object with significantly altered bins and genes from the Cancer Gene Census (curated by the Sanger Institute).
 }
 \description{
-This function provides a statistical assessment for focal CNVs.
+This function provides a statistical assessment for the regions of interest that are defined as \code{detail_regions} in the annotation object.
 }
 \details{
 This function should facilitate the detection of diagnostically relevant CNVs that affect single genes. Segmented Block Bootstrapping is performed to define sample-specific Log2ratio thresholds for high-level alterations.
