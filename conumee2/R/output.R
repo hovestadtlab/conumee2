@@ -20,7 +20,8 @@
 #' @param detail logical. If available, include labels of detail regions? Defaults to \code{TRUE}.
 #' @param bins_cex Default to \code{0.75}. Alternatively, the size of individual bin dots is inversely proportional to its variance of included probes' log2-ratios. Choose either \code{standardized} for fixed dot sizes (to make plots from different samples comparable) or \code{sample_level} (to scale the dot sizes for each sample individually)
 #' @param sig_cgenes logical. Should the significant genes from the Cancer Gene Census be plotted that were identified with \code{CNV.focal}? Default to \code{FALSE}.
-#' @param nsig_cgenes numeric. How many significant genes identified with \code{CNV.focal} should be plotted? Default to \code{3}.
+#' @param nsig_cgenes numeric. How many significant genes identified with \code{CNV.focal} should be plotted? Default to \code{3}. We do not recommend using values higher than 5 in order to avoid false positive results.
+#' @param focal_thresholds logical. Should the dynamic thresholds be plotted? Default to \code{TRUE}. \code{sig_cgenes} must be \code{TRUE}.
 #' @param main character vector. Title of the plot(s). Default to sample names. Please provide a vector of the same length as the number of samples.
 #' @param ylim numeric vector. The y limits of the plot. Default to \code{c(-1.25, 1.25)}.
 #' @param set_par logical. Use recommended graphical parameters for \code{oma} and \code{mar}? Defaults to \code{TRUE}. Original parameters are restored afterwards.
@@ -66,15 +67,14 @@ setGeneric("CNV.genomeplot", function(object, ...) {
 
 #' @rdname CNV.genomeplot
 setMethod("CNV.genomeplot", signature(object = "CNV.analysis"), function(object, chr = "all", centromere = TRUE, detail = TRUE,
-           main = NULL, sig_cgenes = FALSE, nsig_cgenes = 3, output = "output", directory = getwd(), ylim = c(-1.25, 1.25),
+           main = NULL, sig_cgenes = FALSE, nsig_cgenes = 3, focal_thresholds = TRUE, output = "output", directory = getwd(), ylim = c(-1.25, 1.25),
            bins_cex = 0.75, set_par = TRUE,
            width = 12, height = 6, res = 720, cols = c("darkblue","darkblue", "lightgrey", "#F16729", "#F16729")){
 
   # if(length(object@fit) == 0) stop('fit unavailable, run CNV.fit')
   if (length(object@bin) == 0)
     stop("bin unavailable, run CNV.bin")
-  # if(length(object@detail) == 0) stop('bin unavailable, run
-  # CNV.detail')
+  # if(length(object@detail) == 0) stop('bin unavailable, run CNV.detail')
   if (length(object@seg) == 0)
     stop("bin unavailable, run CNV.seg")
   if (nrow(object@fit$ratio) < 300000) {
@@ -177,7 +177,11 @@ setMethod("CNV.genomeplot", signature(object = "CNV.analysis"), function(object,
      }
 
      # detail
+
      if (detail & length(object@detail) > 0 & ncol(object@anno@genome) == 2) {
+
+       #arrays for mice
+
        detail.ratio <- object@detail$ratio[[i]] - object@bin$shift[i]
        detail.ratio[detail.ratio < ylim[1]] <- ylim[1]
        detail.ratio[detail.ratio > ylim[2]] <- ylim[2]
@@ -194,93 +198,89 @@ setMethod("CNV.genomeplot", signature(object = "CNV.analysis"), function(object,
             + chr.cumsum0[as.vector(seqnames(object@anno@detail))],
             ifelse(detail.ratio.above, NA, detail.ratio), labels = paste(values(object@anno@detail)$name, "  ", sep = ""), adj = c(1, 0.5), srt = 90, col = "black")
 
-  } else if(ncol(object@anno@genome) != 2 & detail & length(object@detail)) {
+     } else if(ncol(object@anno@genome) != 2 & detail & length(object@detail) > 0) {
 
-    detail.ratio <- object@detail$ratio[[i]] - object@bin$shift[i]
-    detail.ratio[detail.ratio < ylim[1]] <- ylim[1]
-    detail.ratio[detail.ratio > ylim[2]] <- ylim[2]
-    detail.ratio.above <- (detail.ratio > 0 & detail.ratio < 0.85) |
-      detail.ratio < -0.85
+       #arrays for humans
 
-    lines(start(object@anno@detail) + (end(object@anno@detail) - start(object@anno@detail)) /2
-          + chr.cumsum0[as.vector(seqnames(object@anno@detail))],
-          detail.ratio, type = "p", pch = 16, col = "black")
-    text(start(object@anno@detail) + (end(object@anno@detail) - start(object@anno@detail)) /2
-         + chr.cumsum0[as.vector(seqnames(object@anno@detail))],
-         ifelse(detail.ratio.above, detail.ratio, NA), labels = paste("  ", values(object@anno@detail)$name, sep = ""), adj = c(0,0.5),srt = 90, col = "black")
-    text(start(object@anno@detail) + (end(object@anno@detail) - start(object@anno@detail)) /2
-         + chr.cumsum0[as.vector(seqnames(object@anno@detail))],
-         ifelse(detail.ratio.above, NA, detail.ratio), labels = paste(values(object@anno@detail)$name, "  ", sep = ""), adj = c(1, 0.5), srt = 90, col = "black")
+       detail.ratio <- object@detail$ratio[[i]] - object@bin$shift[i]
+       detail.ratio[detail.ratio < ylim[1]] <- ylim[1]
+       detail.ratio[detail.ratio > ylim[2]] <- ylim[2]
+       detail.ratio.above <- (detail.ratio > 0 & detail.ratio < 0.85) |
+         detail.ratio < -0.85
+
+       lines(start(object@anno@detail) + (end(object@anno@detail) - start(object@anno@detail)) /2
+             + chr.cumsum0[as.vector(seqnames(object@anno@detail))],
+             detail.ratio, type = "p", pch = 16, col = "black")
+       text(start(object@anno@detail) + (end(object@anno@detail) - start(object@anno@detail)) /2
+            + chr.cumsum0[as.vector(seqnames(object@anno@detail))],
+            ifelse(detail.ratio.above, detail.ratio, NA), labels = paste("  ", values(object@anno@detail)$name, sep = ""), adj = c(0,0.5),srt = 90, col = "black")
+       text(start(object@anno@detail) + (end(object@anno@detail) - start(object@anno@detail)) /2
+            + chr.cumsum0[as.vector(seqnames(object@anno@detail))],
+            ifelse(detail.ratio.above, NA, detail.ratio), labels = paste(values(object@anno@detail)$name, "  ", sep = ""), adj = c(1, 0.5), srt = 90, col = "black")
 
 
-    if(!is.null(object@detail$del.genes[[i]]) || !is.null(object@detail$amp.genes[[i]])){
-      sig.genes <- c(object@detail$del.genes[[i]], object@detail$amp.genes[[i]])
+       if(!is.null(object@detail$amp.detail.regions[[i]]) || !is.null(object@detail$del.detail.regions[[i]])){
+         #CNV focal was used
 
-    if(any(object@anno@detail$name %in% sig.genes)) {
-
-           c_genes <- object@anno@detail[which(object@anno@detail$name %in% sig.genes)]
-           mcols(c_genes) <- data.frame(SYMBOL = c_genes$name)
-           names(c_genes) <- c_genes$SYMBOL
-
-           d1 <- as.matrix(findOverlaps(query = c_genes, subject = object@anno@probes))
-           d2 <- data.frame(detail = names(c_genes)[d1[,"queryHits"]], probe = names(object@anno@probes[d1[, "subjectHits"]]),stringsAsFactors = FALSE)
-
-           cgenes.ratio <- sapply(split(object@fit$ratio[d2[, "probe"],i], d2[, "detail"]), median, na.rm = TRUE)[names(c_genes)]
-           cgenes.ratio <- cgenes.ratio - object@bin$shift[i]
-           cgenes.ratio[cgenes.ratio < ylim[1]] <- ylim[1]
-           cgenes.ratio[cgenes.ratio > ylim[2]] <- ylim[2]
-           cgenes.ratio.above <- (cgenes.ratio > 0 & cgenes.ratio < 0.85) |
-             cgenes.ratio < -0.85
-
-           lines(start(c_genes) + (end(c_genes) - start(c_genes)) /2
-                 + chr.cumsum0[as.vector(seqnames(c_genes))],
-                 cgenes.ratio, type = "p", pch = 16, col = "red")
-           text(start(c_genes) + (end(c_genes) - start(c_genes)) /2
-                + chr.cumsum0[as.vector(seqnames(c_genes))],
-                ifelse(cgenes.ratio.above, cgenes.ratio, NA), labels = paste("  ", names(c_genes), sep = ""), adj = c(0,0.5), srt = 90, col = "red")
-           text(start(c_genes) + (end(c_genes) - start(c_genes)) /2
-                + chr.cumsum0[as.vector(seqnames(c_genes))],
-                ifelse(cgenes.ratio.above, NA, cgenes.ratio), labels = paste(names(c_genes), "  ", sep = ""), adj = c(1, 0.5), srt = 90, col = "red")
+         if(focal_thresholds){
+           abline(h = object@detail$threshold.amp[i], col = "black", lty = 2)
+           abline(h = object@detail$threshold.del[i], col = "black", lty = 2)
          }
 
-    if(sig_cgenes) {
+         sig.detail.regions.ratio <- c(object@detail$amp.detail.regions[[i]], object@detail$del.detail.regions[[i]])
 
-      data("consensus_cancer_genes_hg19")
-      data("genes")
+         sig.detail.regions.ratio[sig.detail.regions.ratio < ylim[1]] <- ylim[1]
+         sig.detail.regions.ratio[sig.detail.regions.ratio > ylim[2]] <- ylim[2]
+         sig.detail.regions.ratio.above <- (sig.detail.regions.ratio > 0 & sig.detail.regions.ratio < 0.85) |
+           sig.detail.regions.ratio < -0.85
 
-      genes.n <- setdiff(cancer_genes$SYMBOL, genes$SYMBOL)
-      genes.c <- sort(c(genes, cancer_genes[genes.n]))
-      genes.c.sig <- genes.c[sig.genes[sig.genes %in% cancer_genes$SYMBOL]]
+         sig.detail.regions <- object@anno@detail[object@anno@detail$name %in% names(sig.detail.regions.ratio)]
+         names(sig.detail.regions) <- sig.detail.regions$name
+         sig.detail.regions.ratio <- sig.detail.regions.ratio[names(sig.detail.regions)]
+
+         lines(start(sig.detail.regions) + (end(sig.detail.regions) - start(sig.detail.regions)) /2
+               + chr.cumsum0[as.vector(seqnames(sig.detail.regions))],
+               sig.detail.regions.ratio, type = "p", pch = 16, col = "red")
+         text(start(sig.detail.regions) + (end(sig.detail.regions) - start(sig.detail.regions)) /2
+              + chr.cumsum0[as.vector(seqnames(sig.detail.regions))],
+              ifelse(sig.detail.regions.ratio.above, sig.detail.regions.ratio, NA), labels = paste("  ", names(sig.detail.regions), sep = ""), adj = c(0,0.5), srt = 90, col = "red")
+         text(start(sig.detail.regions) + (end(sig.detail.regions) - start(sig.detail.regions)) /2
+              + chr.cumsum0[as.vector(seqnames(sig.detail.regions))],
+              ifelse(sig.detail.regions.ratio.above, NA, sig.detail.regions.ratio), labels = paste(names(sig.detail.regions), "  ", sep = ""), adj = c(1, 0.5), srt = 90, col = "red")
 
 
-      if(any(object@anno@detail$name %in% sig.genes)){
-        c_genes <- genes.c.sig[setdiff(genes.c.sig$SYMBOL, object@anno@detail$name)]
-      } else{
-        c_genes <- genes.c.sig
-      }
+         if(sig_cgenes) {
 
-      d1 <- as.matrix(findOverlaps(query = c_genes, subject = object@anno@probes))
-      d2 <- data.frame(detail = names(c_genes)[d1[,"queryHits"]], probe = names(object@anno@probes[d1[, "subjectHits"]]),stringsAsFactors = FALSE)
+           data("consensus_cancer_genes_hg19")
 
-      cgenes.ratio <- sapply(split(object@fit$ratio[d2[, "probe"],i], d2[, "detail"]), median, na.rm = TRUE)[names(c_genes)]
-      cgenes.ratio <- cgenes.ratio - object@bin$shift[i]
-      cgenes.ratio.plot <- cgenes.ratio[order(abs(cgenes.ratio), decreasing = TRUE)[1:min(nsig_cgenes, length(cgenes.ratio))]]
-      cgenes.ratio.plot[cgenes.ratio.plot < ylim[1]] <- ylim[1]
-      cgenes.ratio.plot[cgenes.ratio.plot > ylim[2]] <- ylim[2]
-      cgenes.ratio.above <- (cgenes.ratio.plot > 0 & cgenes.ratio.plot < 0.85) |
-        cgenes.ratio.plot < -0.85
+           ampl.amp <- object@detail$amp.cancer.genes[[i]] - object@detail$threshold.amp[[i]]
+           ampl.del <- object@detail$threshold.del[[i]] - object@detail$del.cancer.genes[[i]]
+           sig.cancer.genes.sorted <- names(sort(c(ampl.amp, ampl.del), decreasing = TRUE))
 
-      lines(start(c_genes[names(cgenes.ratio.plot)]) + (end(c_genes[names(cgenes.ratio.plot)]) - start(c_genes[names(cgenes.ratio.plot)])) /2
-            + chr.cumsum0[as.vector(seqnames(c_genes[names(cgenes.ratio.plot)]))],
-            cgenes.ratio.plot, type = "p", pch = 16, col = "red")
-      text(start(c_genes[names(cgenes.ratio.plot)]) + (end(c_genes[names(cgenes.ratio.plot)]) - start(c_genes[names(cgenes.ratio.plot)])) /2
-           + chr.cumsum0[as.vector(seqnames(c_genes[names(cgenes.ratio.plot)]))],
-           ifelse(cgenes.ratio.above, cgenes.ratio.plot, NA), labels = paste("  ", names(c_genes[names(cgenes.ratio.plot)]), sep = ""), adj = c(0,0.5), srt = 90, col = "red")
-      text(start(c_genes[names(cgenes.ratio.plot)]) + (end(c_genes[names(cgenes.ratio.plot)]) - start(c_genes[names(cgenes.ratio.plot)])) /2
-           + chr.cumsum0[as.vector(seqnames(c_genes[names(cgenes.ratio.plot)]))],
-           ifelse(cgenes.ratio.above, NA, cgenes.ratio.plot), labels = paste(names(c_genes[names(cgenes.ratio.plot)]), "  ", sep = ""), adj = c(1, 0.5), srt = 90, col = "red")
+           if(nsig_cgenes > length(sig.cancer.genes.sorted)){
+             nsig_cgenes <- length(sig.cancer.genes.sorted)
+           }
 
-    }}}
+           sig.cancer.genes.ratio <- c(object@detail$amp.cancer.genes[[i]], object@detail$del.cancer.genes[[i]])[sig.cancer.genes.sorted[1:nsig_cgenes]]
+
+           sig.cancer.genes.ratio[sig.cancer.genes.ratio < ylim[1]] <- ylim[1]
+           sig.cancer.genes.ratio[sig.cancer.genes.ratio > ylim[2]] <- ylim[2]
+           sig.cancer.genes.ratio.above <- (sig.cancer.genes.ratio > 0 & sig.cancer.genes.ratio < 0.85) |
+             sig.cancer.genes.ratio < -0.85
+
+           sig.cancer.genes <- cancer_genes[names(sig.cancer.genes.ratio)]
+
+           lines(start(sig.cancer.genes) + (end(sig.cancer.genes) - start(sig.cancer.genes)) /2
+                 + chr.cumsum0[as.vector(seqnames(sig.cancer.genes))],
+                 sig.cancer.genes.ratio, type = "p", pch = 16, col = "red")
+           text(start(sig.cancer.genes) + (end(sig.cancer.genes) - start(sig.cancer.genes)) /2
+                + chr.cumsum0[as.vector(seqnames(sig.cancer.genes))],
+                ifelse(sig.cancer.genes.ratio.above, sig.cancer.genes.ratio, NA), labels = paste("  ", names(sig.cancer.genes), sep = ""), adj = c(0,0.5), srt = 90, col = "red")
+           text(start(sig.cancer.genes) + (end(sig.cancer.genes) - start(sig.cancer.genes)) /2
+                + chr.cumsum0[as.vector(seqnames(sig.cancer.genes))],
+                ifelse(sig.cancer.genes.ratio.above, NA, sig.cancer.genes.ratio), labels = paste(names(sig.cancer.genes), "  ", sep = ""), adj = c(1, 0.5), srt = 90, col = "red")
+
+         }}}
 
      if(is.element(output, c("pdf", "png"))){
        dev.off()
@@ -1116,13 +1116,15 @@ setMethod("CNV.write", signature(object = "CNV.analysis"), function(object, file
 } else if (w == 7){
   if (length(object@detail$sig.genes) == 0)
     stop("Please run CNV.focal")
-  x <- vector(mode='list', length = 4)
-  x[[1]] <- object@detail$amp.genes
-  x[[2]] <- object@detail$del.genes
-  x[[3]] <- object@detail$amp.bins
-  x[[4]] <- object@detail$del.bins
-  names(x) <- c("genes.gains", "genes.loss", "bins.gains", "bins.loss")
-
+  x <- vector(mode='list', length = 6)
+  x[[1]] <- object@detail$amp.bins
+  x[[2]] <- object@detail$del.bins
+  x[[3]] <- object@detail$amp.detail.regions
+  x[[4]] <- object@detail$del.detail.regions
+  x[[5]] <- object@detail$amp.cancer.genes
+  x[[6]] <- object@detail$del.cancer.genes
+  names(x) <- c("bins within amplified regions", "bins within lost regions", "amplified detail regions",
+                "deleted detail regions", "amplified genes from the Cancer Gene Census", "deleted genes from the Cancer Gene Census")
   } else{
     stop("value for what is ambigious.")
   }
