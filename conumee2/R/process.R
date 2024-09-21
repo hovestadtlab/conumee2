@@ -399,7 +399,7 @@ setMethod("CNV.focal", signature(object = "CNV.analysis"), function(object, sig_
 
     # Perform k-means on segments to identify likely copy-number state
     segs <- object@seg$summary[[i]]
-    segs <- GRanges(seqnames = segs$chrom, IRanges(start = segs$loc.start, end = segs$loc.end), seqinfo = Seqinfo(genome = "hg19"))
+    segs <- GRanges(seqnames = segs$chrom, IRanges(start = segs$loc.start, end = segs$loc.end), seqinfo = Seqinfo(genome = object@anno@args$genome))
     seqlevels(segs) <- object@anno@genome$chr
     segs$seg.median <- object@seg$summary[[i]]$seg.median - object@bin$shift[i]
     segs$num.markers <- object@seg$summary[[i]]$num.mark
@@ -413,7 +413,7 @@ setMethod("CNV.focal", signature(object = "CNV.analysis"), function(object, sig_
     bins$weight <- 1/object@bin$variance[[i]][names(bins.log2)]
     bins$log2 <- as.numeric(bins.log2)
     bins$state <- rank(km$centers[, 1])[km$cluster]
-    seqinfo(bins) <- Seqinfo(genome = "hg19")
+    seqinfo(bins) <- Seqinfo(genome = object@anno@args$genome)
 
     seg <- lapply(seq_len(3), function(s){
       x <- reduce(bins[bins$state == s])
