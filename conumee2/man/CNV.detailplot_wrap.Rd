@@ -12,7 +12,7 @@ CNV.detailplot_wrap(object, ...)
   set_par = TRUE,
   main = NULL,
   header = NULL,
-  output = NULL,
+  output = "local",
   directory = getwd(),
   width = 12,
   height = 8,
@@ -27,11 +27,11 @@ CNV.detailplot_wrap(object, ...)
 
 \item{set_par}{logical. Use recommended graphical parameters for \code{oma} and \code{mar}? Defaults to \code{TRUE}. Original parameters are restored afterwards.}
 
-\item{main}{character. Used for \code{CNV.detailplot}. do not manipulate}
+\item{main}{character. Used for \code{CNV.detailplot}. Do not manipulate}
 
 \item{header}{character vector. Title of the plot(s). Defaults to sample names. Please provide a vector of the same length than the number of samples.}
 
-\item{output}{character. Choose between \code{pdf} and \code{png}. Defaults to \code{NULL}}
+\item{output}{character. Choose between \code{pdf} and \code{png}. Defaults to \code{local}}
 
 \item{directory}{character. Export directory for saving the files}
 

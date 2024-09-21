@@ -16,7 +16,7 @@ CNV.write(object, ...)
 
 \item{file}{Path where output file should be written to. Defaults to \code{NULL}: No file is written, table is returned as data.frame object.}
 
-\item{what}{character. This should be (an unambiguous abbreviation of) one of \code{'probes'}, \code{'bins'}, \code{'detail'}, \code{'segments'}, \code{gistic}, \code{overview} or \code{focal}. Defaults to \code{'segments'}.}
+\item{what}{character. This should be (an unambiguous abbreviation of) one of \code{'probes'}, \code{'bins'}, \code{'detail'}, \code{'segments'}, \code{gistic}, \code{threshold} (for CNV.summaryplot) or \code{focal}. Defaults to \code{'segments'}.}
 
 \item{threshold}{numeric. Threshold for determining the copy number state. Defaults to \code{0.1}. See Description for details.}
 }

@@ -4,25 +4,22 @@
 \name{CNV.analysis-class}
 \alias{CNV.analysis-class}
 \alias{show,CNV.analysis-method}
-\alias{names,CNV.analysis-method}
-\alias{names<-,CNV.analysis-method}
 \alias{coef,CNV.analysis-method}
+\alias{[,CNV.analysis,ANY,ANY,ANY-method}
 \title{CNV.analysis class}
 \usage{
 \S4method{show}{CNV.analysis}(object)
 
-\S4method{names}{CNV.analysis}(x)
-
-\S4method{names}{CNV.analysis}(x) <- value
-
 \S4method{coef}{CNV.analysis}(object)
+
+\S4method{[}{CNV.analysis,ANY,ANY,ANY}(x, i)
 }
 \arguments{
 \item{object}{\code{CNV.analysis} object}
 
-\item{x}{\code{CNV.analysis} object (defined by \code{show} generic).}
+\item{x}{\code{CNV.analysis} object (defined by \code{Extract} generic).}
 
-\item{value}{Replacement names.}
+\item{i}{index. \code{logical}, \code{numeric} or \code{character}.}
 }
 \value{
 \code{CNV.analysis} class.
@@ -34,20 +31,6 @@ CNV analysis data of a single sample is stored in this class
 Use \code{CNV.fit} to create. Modified by \code{CNV.bin}, \code{CNV.detail} and \code{CNV.segment}.
 }
 \examples{
-# prepare
-library(minfiData)
-data(MsetEx)
-d <- CNV.load(MsetEx)
-anno <- CNV.create_anno()
-
-# create object
-x <- CNV.fit(query = d['GroupB_1'], ref = d[c('GroupA_1', 'GroupA_2', 'GroupA_3')], anno)
-
-# modify object
-x <- CNV.bin(x)
-x <- CNV.detail(x)
-x <- CNV.segment(x)
-
 # general information
 x
 show(x)
@@ -57,8 +40,11 @@ coef(x)
 
 # show or replace sample name
 names(x)
-names(x) <- 'Sample 1'
+names(x) <- c('Sample.1', 'Sample.2')
 
+# subset samples
+
+x[1]
 # output plots
 CNV.genomeplot(x)
 CNV.genomeplot(x, chr = 'chr6')
@@ -67,5 +53,5 @@ CNV.genomeplot(x, chr = 'chr6')
 CNV.write(x, what = 'segments')
 }
 \author{
-Volker Hovestadt \email{conumee@hovestadt.bio}
+Volker Hovestadt, Bjarne Daenekas \email{conumee@hovestadt.bio}
 }

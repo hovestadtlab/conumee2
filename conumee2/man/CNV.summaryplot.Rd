@@ -7,7 +7,18 @@
 \usage{
 CNV.summaryplot(object, ...)
 
-\S4method{CNV.summaryplot}{CNV.analysis}(object, set_par = TRUE, main = NULL, threshold = 0.1, ...)
+\S4method{CNV.summaryplot}{CNV.analysis}(
+  object,
+  set_par = TRUE,
+  main = NULL,
+  output = "local",
+  directory = getwd(),
+  width = 12,
+  height = 6,
+  res = 720,
+  threshold = 0.1,
+  ...
+)
 }
 \arguments{
 \item{object}{\code{CNV.analysis} object.}
@@ -17,6 +28,16 @@ CNV.summaryplot(object, ...)
 \item{set_par}{logical. Use recommended graphical parameters for \code{oma} and \code{mar}? Defaults to \code{TRUE}. Original parameters are restored afterwards.}
 
 \item{main}{character. Specify the title of the plot. Defaults to \code{NULL}.}
+
+\item{output}{character. Choose between \code{output} (to display it in the graphical output) or \code{pdf} and \code{png} to save it. Defaults to \code{local}.}
+
+\item{directory}{character. Export directory for saving the files}
+
+\item{width}{numeric. Width in inches of the saved files. Defaults to \code{12}.}
+
+\item{height}{numeric. Height in inches of the saved files. Defaults to \code{8}}
+
+\item{res}{numeric. Resolution of the saved .png files. Defaults to \code{720}}
 
 \item{threshold}{numeric. Threshold for determining the copy number state. Defaults to \code{0.1}. See Details for details.}
 }

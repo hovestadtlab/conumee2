@@ -29,5 +29,5 @@ anno
 show(anno)
 }
 \author{
-Volker Hovestadt \email{conumee@hovestadt.bio}
+Volker Hovestadt, Bjarne Daenekas \email{conumee@hovestadt.bio}
 }

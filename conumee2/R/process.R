@@ -1,7 +1,5 @@
 ##### PROCESSING methods #####
 
-
-
 #' CNV.fit
 #' @description Normalize query sample intensities by fitting intensities to reference set using a linear regression model.
 #' @param query \code{CNV.data} object of query sample (multiple samples).
@@ -37,7 +35,7 @@
 #' @author Volker Hovestadt, Bjarne Daenekas \email{conumee@@hovestadt.bio}
 #' @export
 setGeneric("CNV.fit", function(query, ref, anno, ...) {
-    standardGeneric("CNV.fit")
+  standardGeneric("CNV.fit")
 })
 
 #' @rdname CNV.fit
@@ -54,10 +52,32 @@ setMethod("CNV.fit", signature(query = "CNV.data", ref = "CNV.data", anno = "CNV
               warning("reference set contains only a single sample. use more samples for better results.")
 
             p <- unique(names(anno@probes))  # ordered by location
-            if (!all(is.element(p, rownames(query@intensity))))
-              stop("query intensities not given for all probes.")
-            if (!all(is.element(p, rownames(ref@intensity))))
-              stop("reference set intensities not given for all probes.")
+
+            if (!all(is.element(p, rownames(query@intensity)))) {   # check if all probes are there
+              if("IlmnID" %in% colnames(values(anno@probes))) {   # if not, check if full IlmnID identifiers are used
+                if(all(is.element(unique(anno@probes$IlmnID), rownames(query@intensity)))) {   # if yes, change the data object
+                  query@intensity <- query@intensity[anno@probes$IlmnID, ]
+                  rownames(query@intensity) <- names(anno@probes)
+                } else {
+                  stop("query intensities not given for all probes.")
+                }
+              } else {
+                stop("query intensities not given for all probes.")
+              }
+            }
+
+            if (!all(is.element(p, rownames(ref@intensity)))) {
+              if("IlmnID" %in% colnames(values(anno@probes))) {
+                if(all(is.element(unique(anno@probes$IlmnID), rownames(ref@intensity)))) {
+                  ref@intensity <- ref@intensity[anno@probes$IlmnID, ]
+                  rownames(ref@intensity) <- names(anno@probes)
+                } else {
+                  stop("reference intensities not given for all probes.")
+                }
+              } else {
+                stop("reference intensities not given for all probes.")
+              }
+            }
 
             object <- new("CNV.analysis")
             object@date <- date()
@@ -102,7 +122,7 @@ setMethod("CNV.fit", signature(query = "CNV.data", ref = "CNV.data", anno = "CNV
 
 
 #' CNV.bin
-#' @description Combine single probe intensitiy values into predefined bins.
+#' @description Combine single probe intensity values into predefined bins.
 #' @param object \code{CNV.analysis} object.
 #' @param ... Additional parameters (\code{CNV.bin} generic, currently not used).
 #' @return \code{CNV.analysis} object.
@@ -136,7 +156,7 @@ setMethod("CNV.fit", signature(query = "CNV.data", ref = "CNV.data", anno = "CNV
 #' @author Volker Hovestadt, Bjarne Daenekas \email{conumee@@hovestadt.bio}
 #' @export
 setGeneric("CNV.bin", function(object, ...) {
-    standardGeneric("CNV.bin")
+  standardGeneric("CNV.bin")
 })
 
 #' @rdname CNV.bin
@@ -208,7 +228,7 @@ setMethod("CNV.bin", signature(object = "CNV.analysis"), function(object) {
 #' @author Volker Hovestadt, Bjarne Daenekas \email{conumee@@hovestadt.bio}
 #' @export
 setGeneric("CNV.detail", function(object, ...) {
-    standardGeneric("CNV.detail")
+  standardGeneric("CNV.detail")
 })
 
 #' @rdname CNV.detail
@@ -235,154 +255,6 @@ setMethod("CNV.detail", signature(object = "CNV.analysis"), function(object) {
   }
   return(object)
 })
-
-
-
-#' @import nullranges
-NULL
-
-#' CNV.focal
-#' @description This function provides a statistical assessment for the regions of interest that are defined as \code{detail_regions} in the annotation object.
-#' @param object \code{CNV.analysis} object.
-#' @param sig_cgenes logical. Should the genes from the Cancer Gene Census be assessed? Default to \code{FALSE}.
-#' @param conf numeric. Confidence level to calculate to determine the log2-threshold for high-level alterations. Choose between \code{0.95} and \code{0.99}. Default to \code{0.95}.
-#' @param R numeric. Parameter for the \code{bootRanges} function. The number of bootstrap samples to generate. Default to \code{100}.
-#' @param blockLength numeric. Parameter for the \code{bootRanges} function. The length (in basepairs) of the blocks for segmented block bootstrapping. Default to \code{500000}.
-#' @param proportionLength logical. From the \code{nullranges} package: for the segmented block bootstrap, whether to use scaled block lengths, (scaling by the proportion of the segmentation state out of the total genome length)
-#' @param minoverlap integer. The function determines the bins that overlap with the genes of interest. Which minimum number of basepairs should be considered for an overlap? Defaul to \code{1000L}.
-#' @param ... Additional parameters (\code{CNV.detailplot} generic, currently not used).
-#' @return A \code{CNV.analysis} object with significantly altered bins and genes from the Cancer Gene Census (curated by the Sanger Institute).
-#' @details This function should facilitate the detection of diagnostically relevant CNVs that affect single genes. Segmented Block Bootstrapping is performed to define sample-specific Log2ratio thresholds for high-level alterations.
-#' @examples
-#'
-#' x <- CNV.focal(x, sig_cgenes = TRUE, conf = 0.95, R = 100, blockLength = 500000, minoverlap = 10000L)
-#' x@@detail$del.bins  #bins that are part of deletions.
-#' x@@detail$amp.bins  #bins that are part of amplifications.
-#' x@@detail$del.detail.regions #deleted predefined regions
-#' x@@detail$amp.detail.regions #amplified predefined regions
-#' x@@detail$del.cancer.genes #deleted genes from the Cancer Gene Census
-#' x@@detail$amp.cancer.genes #amplified genes from the Cancer Gene Census
-#'
-#'
-#' @author Bjarne Daenekas \email{conumee@@hovestadt.bio}
-#' @export
-setGeneric("CNV.focal", function(object, ...) {
-  standardGeneric("CNV.focal")
-})
-
-#' @rdname CNV.focal
-setMethod("CNV.focal", signature(object = "CNV.analysis"), function(object, sig_cgenes = FALSE, conf = 0.95, R = 100, blockLength = 500000, proportionLength = TRUE, ...){
-  if(ncol(object@anno@genome) == 2) {
-    stop("CNV.focal is not compatible with mouse arrays.")
-  }
-
-  if(!length(object@anno@detail) >= 1){
-    stop("Please run CNV.detail() to specify genes of interest.")
-  }
-
-  data("consensus_cancer_genes_hg19")
-
-  threshold.amp <- vector(mode='list', length=ncol(object@fit$ratio))
-  threshold.del <- vector(mode='list', length=ncol(object@fit$ratio))
-  amp_bins <- vector(mode='list', length=ncol(object@fit$ratio))
-  del_bins <- vector(mode='list', length=ncol(object@fit$ratio))
-  detail.regions.amp <- vector(mode='list', length=ncol(object@fit$ratio))
-  detail.regions.del <- vector(mode='list', length=ncol(object@fit$ratio))
-  cancer.genes.amp <- vector(mode='list', length=ncol(object@fit$ratio))
-  cancer.genes.del <- vector(mode='list', length=ncol(object@fit$ratio))
-
-  for(i in 1:ncol(object@fit$ratio)){
-
-    message(paste(colnames(object@fit$ratio)[i]), " (",round(i/ncol(object@fit$ratio)*100, digits = 3), "%", ")", sep = "")
-
-    segs <- object@seg$summary[[i]]
-    segs <- GRanges(seqnames = segs$chrom, IRanges(start = segs$loc.start, end = segs$loc.end), seqinfo = Seqinfo(genome = "hg19"))
-    seqlevels(segs) <- object@anno@genome$chr
-    segs$seg.median <- object@seg$summary[[i]]$seg.median - object@bin$shift[i]
-    segs$num.markers <- object@seg$summary[[i]]$num.mark
-    segs <- sort(segs)
-
-    seq <- rep(segs$seg.median, segs$num.markers)
-    km <- kmeans(seq, centers=3, nstart=25)
-
-    bins.log2 <- object@bin$ratio[[i]] - object@bin$shift[i]
-    bins <- object@anno@bins[names(bins.log2)]
-    bins$weight <- 1/object@bin$variance[[i]][names(bins.log2)]
-    bins$log2 <- as.numeric(bins.log2)
-    bins$state <- km$cluster
-    seqinfo(bins) <- Seqinfo(genome = "hg19")
-
-    seg <- lapply(seq_len(3), function(s){
-      x <- reduce(bins[bins$state == s])
-      mcols(x)$state <- s
-      x
-    })
-
-    seg <- c(seg[[1]], seg[[2]], seg[[3]])
-
-    boots <- bootRanges(bins, blockLength = blockLength, R = R, seg = seg, exclude = object@anno@exclude, proportionLength = proportionLength)
-
-    t <- round(length(boots) * (1-conf), digits = 0)/2
-    del_t <- round(sort(boots$log2)[t], digits = 3)
-    amp_t <- round(sort(boots$log2, decreasing =  TRUE)[t], digits = 3)
-    threshold.amp[[i]] <- amp_t
-    threshold.del[[i]] <- del_t
-
-    bins.total <- object@bin$ratio[[i]] - object@bin$shift[i]
-    bins.amp <- sort(bins.total[bins.total >= amp_t], decreasing = TRUE)
-    bins.del <- sort(bins.total[bins.total <= del_t])
-
-    amp_bins[[i]] <- bins.amp
-    del_bins[[i]] <- bins.del
-
-    #Detail regions are subjected to the dynamic thresholds
-
-    detail.genes <- object@anno@detail
-    d1 <- as.matrix(findOverlaps(query = detail.genes, subject = object@anno@probes))
-    d2 <- data.frame(gene = values(detail.genes)$name[d1[,"queryHits"]], probe = names(object@anno@probes[d1[, "subjectHits"]]),stringsAsFactors = FALSE)
-    detail.genes.ratio <- sapply(split(object@fit$ratio[d2[, "probe"],i], d2[, "gene"]), median, na.rm = TRUE)[values(detail.genes)$name]
-    detail.genes.ratio <- detail.genes.ratio - object@bin$shift[i]
-
-    detail.regions.amp[[i]] <- sort(detail.genes.ratio[which(detail.genes.ratio >= amp_t)], decreasing = TRUE)
-    detail.regions.del[[i]] <- sort(detail.genes.ratio[which(detail.genes.ratio <= del_t)])
-
-    #Genes from Cancer Gene Census are subjected to the dynamic thresholds
-
-    if(sig_cgenes){
-
-      cancer.genes <- cancer_genes[setdiff(cancer_genes$SYMBOL, object@anno@detail$name)]
-      d1 <- as.matrix(findOverlaps(query = cancer.genes, subject = object@anno@probes))
-      d2 <- data.frame(gene = values(cancer.genes)$SYMBOL[d1[,"queryHits"]], probe = names(object@anno@probes[d1[, "subjectHits"]]),stringsAsFactors = FALSE)
-      cancer.genes.ratio <- sapply(split(object@fit$ratio[d2[, "probe"],i], d2[, "gene"]), median, na.rm = TRUE)[values(cancer.genes)$SYMBOL]
-      cancer.genes.ratio <- cancer.genes.ratio - object@bin$shift[i]
-
-      cancer.genes.amp[[i]] <- sort(cancer.genes.ratio[which(cancer.genes.ratio >= amp_t)], decreasing = TRUE)
-      cancer.genes.del[[i]] <- sort(cancer.genes.ratio[which(cancer.genes.ratio <= del_t)])
-    }
-  }
-
-  names(threshold.amp) <- colnames(object@fit$ratio)
-  names(threshold.del) <- colnames(object@fit$ratio)
-  names(amp_bins) <- colnames(object@fit$ratio)
-  names(del_bins) <- colnames(object@fit$ratio)
-  names(detail.regions.amp) <- colnames(object@fit$ratio)
-  names(detail.regions.del) <- colnames(object@fit$ratio)
-  names(cancer.genes.amp) <- colnames(object@fit$ratio)
-  names(cancer.genes.del) <- colnames(object@fit$ratio)
-
-  object@detail$threshold.amp <- threshold.amp
-  object@detail$threshold.del <- threshold.del
-  object@detail$amp.bins <- amp_bins
-  object@detail$del.bins <- del_bins
-  object@detail$amp.detail.regions <- detail.regions.amp
-  object@detail$del.detail.regions <- detail.regions.del
-  object@detail$amp.cancer.genes <- cancer.genes.amp
-  object@detail$del.cancer.genes <- cancer.genes.del
-
-  return(object)
-
-})
-
 
 #' @import DNAcopy
 NULL
@@ -428,7 +300,7 @@ NULL
 #' @author Volker Hovestadt, Bjarne Daenekas \email{conumee@@hovestadt.bio}
 #' @export
 setGeneric("CNV.segment", function(object, ...) {
-    standardGeneric("CNV.segment")
+  standardGeneric("CNV.segment")
 })
 
 #' @rdname CNV.segment
@@ -474,3 +346,175 @@ setMethod("CNV.segment", signature(object = "CNV.analysis"), function(object,
   return(object)
 })
 
+#' @import nullranges
+NULL
+
+#' CNV.focal
+#' @description This function aims to detect focal CNVs that are defined as \code{detail_regions} in the annotation object.
+#' @param object \code{CNV.analysis} object.
+#' @param sig_cgenes logical. Should the genes from the Cancer Gene Census be assessed as well? (The high number of genes can lead to false positive results.) Default to \code{FALSE}.
+#' @param conf numeric. Confidence level to determine the log2-threshold for focal alterations. Default to \code{0.99}.
+#' @param R numeric. Parameter for the \code{bootRanges} function. The number of bootstrap samples to generate. Default to \code{100}.
+#' @param blockLength numeric. Parameter for the \code{bootRanges} function. The length (in basepairs) of the blocks for Segmented Block Bootstrapping. Default to \code{500000}.
+#' @param proportionLength logical. From the \code{nullranges} package: for the segmented block bootstrap, whether to use scaled block lengths, (scaling by the proportion of the segmentation state out of the total genome length)
+#' @param ... Additional parameters (\code{CNV.detailplot} generic, currently not used).
+#' @return A \code{CNV.analysis} object with significantly altered bins and predefined focal regions of interest.
+#' @details This function should facilitate the detection of CNVs that affect single genes. K-means clustering is used to assign each segment to a copy-number state. The mean and standard deviation for each state derived from Segmented Block Bootstrapping is used to model a normal distribution for each state. The confidence interval is used to define state-spefici thresholds for focal CNVs.
+#' @examples
+#'
+#' x <- CNV.focal(x, sig_cgenes = TRUE, conf = 0.99, R = 100, blockLength = 500000)
+#' x@@detail$del.bins  #bins that are part of deletions.
+#' x@@detail$amp.bins  #bins that are part of amplifications.
+#' x@@detail$del.detail.regions #deleted predefined regions
+#' x@@detail$amp.detail.regions #amplified predefined regions
+#' x@@detail$del.cancer.genes #deleted genes from the Cancer Gene Census
+#' x@@detail$amp.cancer.genes #amplified genes from the Cancer Gene Census
+#'
+#'
+#' @author Bjarne Daenekas, Volker Hovestadt \email{conumee@@hovestadt.bio}
+#' @export
+setGeneric("CNV.focal", function(object, ...) {
+  standardGeneric("CNV.focal")
+})
+
+#' @rdname CNV.focal
+setMethod("CNV.focal", signature(object = "CNV.analysis"), function(object, sig_cgenes = FALSE, conf = 0.99, R = 100, blockLength = 500000, proportionLength = TRUE, ...){
+  if(ncol(object@anno@genome) == 2) {
+    stop("CNV.focal is not compatible with mouse arrays.")
+  }
+
+  if(!length(object@anno@detail) >= 1){
+    stop("Please run CNV.detail() to specify genes of interest.")
+  }
+
+  amp_bins <- vector(mode='list', length=ncol(object@fit$ratio))
+  del_bins <- vector(mode='list', length=ncol(object@fit$ratio))
+  detail.regions.amp <- vector(mode='list', length=ncol(object@fit$ratio))
+  detail.regions.del <- vector(mode='list', length=ncol(object@fit$ratio))
+  cancer.genes.amp <- vector(mode='list', length=ncol(object@fit$ratio))
+  cancer.genes.del <- vector(mode='list', length=ncol(object@fit$ratio))
+
+  for(i in 1:ncol(object@fit$ratio)){
+    message(paste(colnames(object@fit$ratio)[i]), " (",round(i/ncol(object@fit$ratio)*100, digits = 3), "%", ")", sep = "")
+
+    # Perform k-means on segments to identify likely copy-number state
+    segs <- object@seg$summary[[i]]
+    segs <- GRanges(seqnames = segs$chrom, IRanges(start = segs$loc.start, end = segs$loc.end), seqinfo = Seqinfo(genome = "hg19"))
+    seqlevels(segs) <- object@anno@genome$chr
+    segs$seg.median <- object@seg$summary[[i]]$seg.median - object@bin$shift[i]
+    segs$num.markers <- object@seg$summary[[i]]$num.mark
+    segs <- sort(segs)
+
+    segs.rep <- rep(segs$seg.median, segs$num.markers)
+    km <- kmeans(segs.rep, centers=3, nstart=25)
+
+    bins.log2 <- object@bin$ratio[[i]] - object@bin$shift[i]
+    bins <- object@anno@bins[names(bins.log2)]
+    bins$weight <- 1/object@bin$variance[[i]][names(bins.log2)]
+    bins$log2 <- as.numeric(bins.log2)
+    bins$state <- rank(km$centers[, 1])[km$cluster]
+    seqinfo(bins) <- Seqinfo(genome = "hg19")
+
+    seg <- lapply(seq_len(3), function(s){
+      x <- reduce(bins[bins$state == s])
+      mcols(x)$state <- s
+      x
+    })
+    seg <- c(seg[[1]], seg[[2]], seg[[3]])
+
+    # Bootstrap to identify thresholds for deletions and amplifications, for each copy-number state
+    boots <- bootRanges(bins, blockLength = blockLength, R = R, seg = seg, exclude = object@anno@exclude, proportionLength = proportionLength)
+
+    boots.state <- split(boots$log2, boots$state)
+    boots.state.mean <- sapply(boots.state, mean)
+    boots.state.sd <- sapply(boots.state, sd)
+    boots.state.low <- mapply(qnorm, boots.state.mean, boots.state.sd, p=(1-conf)/2)    # assume normal distr, two-sided
+    boots.state.high <- mapply(qnorm, boots.state.mean, boots.state.sd, p=1-(1-conf)/2)
+
+    bins.total <- object@bin$ratio[[i]] - object@bin$shift[i]
+    bins.amp <- sort(bins.total[bins.total >= boots.state.high[bins$state]], decreasing = TRUE)
+    bins.del <- sort(bins.total[bins.total <= boots.state.low[bins$state]])
+
+    amp_bins[[i]] <- bins.amp
+    del_bins[[i]] <- bins.del
+
+    # Detail regions are subjected to the dynamic thresholds
+    detail.genes <- object@anno@detail
+    d1 <- as.matrix(findOverlaps(query = detail.genes, subject = object@anno@probes))
+    d1seg <- as.matrix(findOverlaps(query = detail.genes, subject = seg))
+    d2 <- data.frame(gene = values(detail.genes)$name[d1[,"queryHits"]], probe = names(object@anno@probes[d1[, "subjectHits"]]), stringsAsFactors = FALSE)
+    detail.genes.ratio <- sapply(split(object@fit$ratio[d2[, "probe"], i], d2[, "gene"]), median, na.rm = TRUE)[values(detail.genes)$name]
+    detail.genes.ratio <- detail.genes.ratio - object@bin$shift[i]
+    detail.genes.seg <- round(sapply(split(seg$state[d1seg[, "subjectHits"]], values(detail.genes)$name[d1seg[,"queryHits"]]), mean))[values(detail.genes)$name]
+
+    detail.regions.amp[[i]] <- sort(detail.genes.ratio[which(detail.genes.ratio >= boots.state.high[detail.genes.seg])], decreasing = TRUE)
+    detail.regions.del[[i]] <- sort(detail.genes.ratio[which(detail.genes.ratio <= boots.state.low[detail.genes.seg])])
+
+    # Genes from Cancer Gene Census are subjected to the dynamic thresholds
+    if(sig_cgenes) {
+
+      if(object@anno@args$genome == "hg38"){
+        data("consensus_cancer_genes_hg38")
+      } else {
+        data("consensus_cancer_genes_hg19")
+      }
+
+      cancer.genes <- cancer_genes[setdiff(cancer_genes$SYMBOL, object@anno@detail$name)]
+      d1 <- as.matrix(findOverlaps(query = cancer.genes, subject = object@anno@probes))
+      d1seg <- as.matrix(findOverlaps(query = cancer.genes, subject = seg))
+      d2 <- data.frame(gene = values(cancer.genes)$SYMBOL[d1[, "queryHits"]], probe = names(object@anno@probes[d1[, "subjectHits"]]),stringsAsFactors = FALSE)
+      cancer.genes.ratio <- sapply(split(object@fit$ratio[d2[, "probe"], i], d2[, "gene"]), median, na.rm = TRUE)[values(cancer.genes)$SYMBOL]
+      cancer.genes.ratio <- cancer.genes.ratio - object@bin$shift[i]
+      cancer.genes.seg <- round(sapply(split(seg$state[d1seg[, "subjectHits"]], values(cancer.genes)$SYMBOL[d1seg[,"queryHits"]]), mean, na.rm=TRUE))[values(cancer.genes)$SYMBOL]
+
+      cancer.genes.amp[[i]] <- sort(cancer.genes.ratio[which(cancer.genes.ratio >= boots.state.high[cancer.genes.seg])], decreasing = TRUE)
+      cancer.genes.del[[i]] <- sort(cancer.genes.ratio[which(cancer.genes.ratio <= boots.state.low[cancer.genes.seg])])
+    }
+  }
+
+  names(amp_bins) <- colnames(object@fit$ratio)
+  names(del_bins) <- colnames(object@fit$ratio)
+  names(detail.regions.amp) <- colnames(object@fit$ratio)
+  names(detail.regions.del) <- colnames(object@fit$ratio)
+  names(cancer.genes.amp) <- colnames(object@fit$ratio)
+  names(cancer.genes.del) <- colnames(object@fit$ratio)
+
+  object@detail$amp.bins <- amp_bins
+  object@detail$del.bins <- del_bins
+  object@detail$amp.detail.regions <- detail.regions.amp
+  object@detail$del.detail.regions <- detail.regions.del
+  object@detail$amp.cancer.genes <- cancer.genes.amp
+  object@detail$del.cancer.genes <- cancer.genes.del
+
+  return(object)
+})
+
+#' CNV.combine
+#' @description Combine two \code{CNV.analysis} objects. Please make sure that both objects were generated with the same reference samples and the same annotation object in \code{CNV.fit()}.
+#' @param query.1 \code{CNV.analysis} object 1.
+#' @param query.2 \code{CNV.analysis} object 2.
+#' @param ... Additional parameters (\code{CNV.combine} generic, currently not used).
+#' @return \code{CNV.analysis} object.
+#' @details This function combines two \code{CNV.analysis} objects. This is necessary if summaryplots or heatmaps should be generated for a cohort that comprises methylation profiles from multiple array types.
+#'
+#'x.1 <- CNV.fit(query.1, ref, anno)
+#'x.2 <- CNV.fit(query.2, ref, anno)
+#'
+#'x.combined <- CNV.combine(x.1, x.2)
+#'
+#' @author Bjarne Daenekas \email{conumee@@hovestadt.bio}
+#' @export
+setGeneric("CNV.combine", function(query.1, query.2, ...) {
+  standardGeneric("CNV.combine")
+})
+
+#' @rdname CNV.combine
+setMethod("CNV.combine", signature(query.1 = "CNV.analysis", query.2 = "CNV.analysis"),
+          function(query.1, query.2){
+
+            query.1@fit$coef <- cbind(query.1@fit$coef, query.2@fit$coef)
+            query.1@fit$ratio <- cbind(query.1@fit$ratio, query.2@fit$ratio)
+            query.1@fit$noise <- c(query.1@fit$noise, query.2@fit$noise)
+
+            return(query.1)
+})

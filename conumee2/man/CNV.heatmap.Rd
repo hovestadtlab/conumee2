@@ -17,6 +17,11 @@ CNV.heatmap(object, ...)
   cexRow = 1/2,
   zlim = c(-0.5, 0.5),
   useRaster = TRUE,
+  output = "local",
+  directory = getwd(),
+  width = 8,
+  height = 8,
+  res = 720,
   ...
 )
 }
@@ -40,6 +45,16 @@ CNV.heatmap(object, ...)
 \item{zlim}{numeric. The minimum and maximum z values for which colors should be plotted. Default to \code{c(-0.5,0.5)}.}
 
 \item{useRaster}{logical. Should a bitmap raster be used to create the plot instead of polygons? Default to \code{TRUE}.}
+
+\item{output}{character. Choose between \code{output} (to display it in the graphical output) or \code{pdf} and \code{png} to save it. Defaults to \code{local}.}
+
+\item{directory}{character. Export directory for saving the files}
+
+\item{width}{numeric. Width in inches of the saved files. Defaults to \code{12}.}
+
+\item{height}{numeric. Height in inches of the saved files. Defaults to \code{8}}
+
+\item{res}{numeric. Resolution of the saved .png files. Defaults to \code{720}}
 }
 \description{
 Create a heatmap to illustrate CNVs in a set of query samples. Colors correspond to the other plots.

@@ -15,8 +15,7 @@ CNV.genomeplot(object, ...)
   main = NULL,
   sig_cgenes = FALSE,
   nsig_cgenes = 3,
-  focal_thresholds = TRUE,
-  output = "output",
+  output = "local",
   directory = getwd(),
   ylim = c(-1.25, 1.25),
   bins_cex = 0.75,
@@ -44,9 +43,7 @@ CNV.genomeplot(object, ...)
 
 \item{nsig_cgenes}{numeric. How many significant genes identified with \code{CNV.focal} should be plotted? Default to \code{3}. We do not recommend using values higher than 5 in order to avoid false positive results.}
 
-\item{focal_thresholds}{logical. Should the dynamic thresholds be plotted? Default to \code{TRUE}. \code{sig_cgenes} must be \code{TRUE}.}
-
-\item{output}{character. Choose between \code{output} (to display it in the graphical output) or \code{pdf} and \code{png} to save it. Defaults to \code{output}.}
+\item{output}{character. Choose between \code{output} (to display it in the graphical output) or \code{pdf} and \code{png} to save it. Defaults to \code{local}.}
 
 \item{directory}{character. Export directory for saving the files}
 
@@ -63,6 +60,8 @@ CNV.genomeplot(object, ...)
 \item{res}{numeric. Resolution of the saved .png files. Defaults to \code{720}}
 
 \item{cols}{character vector. Colors to use for plotting intensity levels of bins. Centered around 0. Defaults to \code{c("darkblue","darkblue", "lightgrey", "#F16729", "#F16729")}.}
+
+\item{focal_thresholds}{logical. Should the dynamic thresholds be plotted? Default to \code{TRUE}. \code{sig_cgenes} must be \code{TRUE}.}
 }
 \value{
 \code{NULL}.

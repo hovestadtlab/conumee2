@@ -5,22 +5,22 @@
 \title{CNV.merge_bins}
 \usage{
 CNV.merge_bins(
-  hg19.anno,
-  hg19.tile,
+  genome.anno,
+  genome.tile,
   bin_minprobes = 15,
-  hg19.probes,
+  genome.probes,
   bin_maxsize = 5e+06,
   verbose = FALSE
 )
 }
 \arguments{
-\item{hg19.anno}{foo}
+\item{genome.anno}{foo}
 
-\item{hg19.tile}{foo}
+\item{genome.tile}{foo}
 
 \item{bin_minprobes}{foo}
 
-\item{hg19.probes}{foo}
+\item{genome.probes}{foo}
 
 \item{bin_maxsize}{foo}
 

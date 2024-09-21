@@ -9,6 +9,8 @@ CNV.create_anno(
   bin_minsize = 50000,
   bin_maxsize = 5e+06,
   array_type = "450k",
+  genome = "hg19",
+  features = "all",
   exclude_regions = NULL,
   detail_regions = NULL,
   chrXY = FALSE
@@ -21,7 +23,11 @@ CNV.create_anno(
 
 \item{bin_maxsize}{numeric. Maximum size of a bin. Merged bins that are larger are filtered out.}
 
-\item{array_type}{character. One of \code{450k}, \code{EPIC}, \code{EPICv2}, \code{mouse} or \code{overlap}. Defaults to \code{450k}.}
+\item{array_type}{character. One of \code{450k}, \code{EPIC}, \code{EPICv2}, \code{mouse}. When analyzing data from multiple array types, choose between \code{overlap.1} for 450k and EPIC, \code{overlap.2} for EPIC and EPICv2 or \code{overlap.3} for 450k, EPIC, EPICv2.}
+
+\item{genome}{character. This parameter can be set to \code{hg38} when working with EPICv2 data. It will be ignored if \code{array_type = mouse}.}
+
+\item{features}{vector. Per default, all unique CpGs on the array are used for the analysis. Please provide a vector with Probe IDs to create a customized set of probes.}
 
 \item{exclude_regions}{GRanges object or path to bed file containing genomic regions to be excluded.}
 

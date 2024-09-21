@@ -22,7 +22,7 @@ CNV.import(array_type, directory, sample_sheet, ...)
 \code{dataframe} object.
 }
 \description{
-Load combined signal intensities from .idat-Files generated with the Illumina Mouse array or the EPICv2 array. Next, use the resulting \code{data.frame} for \code{CNV.load}.
+Load combined signal intensities from .idat-Files generated with the Illumina Mouse array or the EPICv2 array. Next, use the resulting \code{data.frame} for \code{CNV.load}. This function is now deprecated. Please use sesame or minfi.
 }
 \details{
 This method loads the unmethylated and methylated signal intensities for each probe by using the \code{illuminaio} package and calculates the combined signal intensities. It is designed to be used for the Illumina EPICv2 arrays and the Illumina Mouse arrays. Subsequently, the resulting \code{data.frame} should be used for \code{CNV.load}

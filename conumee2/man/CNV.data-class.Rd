@@ -7,6 +7,8 @@
 \alias{[,CNV.data,ANY,ANY,ANY-method}
 \alias{names,CNV.data-method}
 \alias{names<-,CNV.data-method}
+\alias{names,CNV.analysis-method}
+\alias{names<-,CNV.analysis-method}
 \title{CNV.data class}
 \usage{
 \S4method{show}{CNV.data}(object)
@@ -16,6 +18,10 @@
 \S4method{names}{CNV.data}(x)
 
 \S4method{names}{CNV.data}(x) <- value
+
+\S4method{names}{CNV.analysis}(x)
+
+\S4method{names}{CNV.analysis}(x) <- value
 }
 \arguments{
 \item{object}{\code{CNV.data} object}
@@ -36,12 +42,6 @@ Intensities of one or multiple samples are stored in this class.
 Use \code{CNV.load} to create.
 }
 \examples{
-# create object
-library(minfiData)
-data(MsetEx)
-
-d <- CNV.load(MsetEx)
-
 # general information
 d
 show(d)
@@ -54,5 +54,5 @@ names(d) <- toupper(names(d))
 d[1:2]
 }
 \author{
-Volker Hovestadt \email{conumee@hovestadt.bio}
+Volker Hovestadt, Bjarne Daenekas \email{conumee@hovestadt.bio}
 }

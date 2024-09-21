@@ -1,6 +1,6 @@
 ---
 title: "The conumee 2 vignette"
-author: "Volker Hovestadt, Marc Zapatka (Division of Molecular Genetics, German Cancer Research Center, Heidelberg, Germany)"
+author: "Bjarne Daenekas, Volker Hovestadt"
 date: "`r Sys.Date()`"
 output:
   BiocStyle::html_document:

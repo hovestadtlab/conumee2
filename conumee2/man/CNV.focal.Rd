@@ -10,7 +10,7 @@ CNV.focal(object, ...)
 \S4method{CNV.focal}{CNV.analysis}(
   object,
   sig_cgenes = FALSE,
-  conf = 0.95,
+  conf = 0.99,
   R = 100,
   blockLength = 5e+05,
   proportionLength = TRUE,
@@ -22,30 +22,28 @@ CNV.focal(object, ...)
 
 \item{...}{Additional parameters (\code{CNV.detailplot} generic, currently not used).}
 
-\item{sig_cgenes}{logical. Should the genes from the Cancer Gene Census be assessed? Default to \code{FALSE}.}
+\item{sig_cgenes}{logical. Should the genes from the Cancer Gene Census be assessed as well? (The high number of genes can lead to false positive results.) Default to \code{FALSE}.}
 
-\item{conf}{numeric. Confidence level to calculate to determine the log2-threshold for high-level alterations. Choose between \code{0.95} and \code{0.99}. Default to \code{0.95}.}
+\item{conf}{numeric. Confidence level to determine the log2-threshold for focal alterations. Default to \code{0.99}.}
 
 \item{R}{numeric. Parameter for the \code{bootRanges} function. The number of bootstrap samples to generate. Default to \code{100}.}
 
-\item{blockLength}{numeric. Parameter for the \code{bootRanges} function. The length (in basepairs) of the blocks for segmented block bootstrapping. Default to \code{500000}.}
+\item{blockLength}{numeric. Parameter for the \code{bootRanges} function. The length (in basepairs) of the blocks for Segmented Block Bootstrapping. Default to \code{500000}.}
 
 \item{proportionLength}{logical. From the \code{nullranges} package: for the segmented block bootstrap, whether to use scaled block lengths, (scaling by the proportion of the segmentation state out of the total genome length)}
-
-\item{minoverlap}{integer. The function determines the bins that overlap with the genes of interest. Which minimum number of basepairs should be considered for an overlap? Defaul to \code{1000L}.}
 }
 \value{
-A \code{CNV.analysis} object with significantly altered bins and genes from the Cancer Gene Census (curated by the Sanger Institute).
+A \code{CNV.analysis} object with significantly altered bins and predefined focal regions of interest.
 }
 \description{
-This function provides a statistical assessment for the regions of interest that are defined as \code{detail_regions} in the annotation object.
+This function aims to detect focal CNVs that are defined as \code{detail_regions} in the annotation object.
 }
 \details{
-This function should facilitate the detection of diagnostically relevant CNVs that affect single genes. Segmented Block Bootstrapping is performed to define sample-specific Log2ratio thresholds for high-level alterations.
+This function should facilitate the detection of CNVs that affect single genes. K-means clustering is used to assign each segment to a copy-number state. The mean and standard deviation for each state derived from Segmented Block Bootstrapping is used to model a normal distribution for each state. The confidence interval is used to define state-spefici thresholds for focal CNVs.
 }
 \examples{
 
-x <- CNV.focal(x, sig_cgenes = TRUE, conf = 0.95, R = 100, blockLength = 500000, minoverlap = 10000L)
+x <- CNV.focal(x, sig_cgenes = TRUE, conf = 0.99, R = 100, blockLength = 500000)
 x@detail$del.bins  #bins that are part of deletions.
 x@detail$amp.bins  #bins that are part of amplifications.
 x@detail$del.detail.regions #deleted predefined regions
@@ -56,5 +54,5 @@ x@detail$amp.cancer.genes #amplified genes from the Cancer Gene Census
 
 }
 \author{
-Bjarne Daenekas \email{conumee@hovestadt.bio}
+Bjarne Daenekas, Volker Hovestadt \email{conumee@hovestadt.bio}
 }

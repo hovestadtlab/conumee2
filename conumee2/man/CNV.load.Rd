@@ -42,6 +42,12 @@ If column names match 'intensity', only those columns are used. Else, if column 
 library(minfiData)
 d <- CNV.load(MsetEx)
 d
+
+library(sesame)
+sdfs = openSesame(idat_dir, prep = "QCDPB", func = NULL)
+combined.intensities <- lapply(sdfs, totalIntensities)
+d <- CNV.load(combined.intensities)
+d
 }
 \author{
 Volker Hovestadt \email{conumee@hovestadt.bio}

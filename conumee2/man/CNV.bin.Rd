@@ -18,7 +18,7 @@ CNV.bin(object, ...)
 \code{CNV.analysis} object.
 }
 \description{
-Combine single probe intensitiy values into predefined bins.
+Combine single probe intensity values into predefined bins.
 }
 \details{
 The median intensity per bin and its variance are calculated. Bins are defined using \code{CNV.create_anno}. A value by which all probe and bin intensity values are shifted in subsequent analysis steps is calculated by minimizing the median absolute deviation from all bins to zero (ideally shifting the copy-neutral state to 0).

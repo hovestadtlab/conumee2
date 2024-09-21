@@ -3,7 +3,7 @@ citEntry(entry="manual",
     arrays",
   author = "Bjarne Daenekas, Volker Hovestadt, Marc Zapatka",
   address = "Division of Molecular Genetics, German Cancer Research Center (DKFZ), Heidelberg, Germany",
-  note = "R package version 1.6.0",
+  note = "R package version 2.1",
   url = "http://bioconductor.org/packages/conumee/",
   textVersion = "Daenekas B (2022). \"Enhanced copy-number variation analysis using Illumina DNA methylation
-    arrays for humans and mice.\", R package version 2.0. <URL: http://bioconductor.org/packages/conumee/>.")
+    arrays for humans and mice.\", R package version 2.1. <URL: http://bioconductor.org/packages/conumee/>.")

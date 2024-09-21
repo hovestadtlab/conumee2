@@ -13,7 +13,7 @@ CNV.detailplot(object, ...)
   yaxt = "l",
   ylim = c(-1.25, 1.25),
   set_par = TRUE,
-  output = NULL,
+  output = "local",
   columns = NULL,
   main = NULL,
   directory = getwd(),
@@ -36,7 +36,7 @@ CNV.detailplot(object, ...)
 
 \item{set_par}{logical. Use recommended graphical parameters for \code{oma} and \code{mar}? Defaults to \code{TRUE}. Original parameters are restored afterwards.}
 
-\item{output}{character. Choose between \code{pdf} and \code{png}. Defaults to \code{NULL}}
+\item{output}{character. Choose between \code{pdf} and \code{png}. Defaults to \code{local}}
 
 \item{columns}{numeric. Needed for \code{detailplot_wrap}. Defaults to \code{NULL}. Do not manipulate.}
 

@@ -19,8 +19,8 @@ CNV.check(object)
 Check intensity values.
 }
 \details{
-This method checks if intensities are positive and not NA. If not, they are set to 1. Warnings are given if intensities are abnormally high or low (> 50000 or < 5000, respectively).
+This method checks if intensities are positive and not NA. If not, they are removed (NA) or set to 1 (negative values). Warnings are given if intensities are abnormally high or low (> 50000 or < 5000, respectively).
 }
 \author{
-Volker Hovestadt \email{conumee@hovestadt.bio}
+Volker Hovestadt, Bjarne Daenekas \email{conumee@hovestadt.bio}
 }

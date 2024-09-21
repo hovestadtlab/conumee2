@@ -4,16 +4,16 @@
 \alias{CNV.create_bins}
 \title{CNV.create_bins}
 \usage{
-CNV.create_bins(hg19.anno, bin_minsize = 50000, hg19.gap, hg19.exclude)
+CNV.create_bins(genome.anno, bin_minsize = 50000, genome.gap, genome.exclude)
 }
 \arguments{
-\item{hg19.anno}{foo}
+\item{genome.anno}{foo}
 
 \item{bin_minsize}{foo}
 
-\item{hg19.gap}{foo}
+\item{genome.gap}{foo}
 
-\item{hg19.exclude}{foo}
+\item{genome.exclude}{foo}
 }
 \value{
 \code{GRanges} object.
