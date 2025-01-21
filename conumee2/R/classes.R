@@ -227,6 +227,8 @@ setMethod("[", signature(x = "CNV.analysis"), function(x, i) {
   x@detail$del.detail.regions <- x@detail$del.detail.regions[i, drop = FALSE]
   x@detail$amp.cancer.genes <- x@detail$amp.cancer.genes[i, drop = FALSE]
   x@detail$del.cancer.genes <- x@detail$del.cancer.genes[i, drop = FALSE]
+  x@seg$summary <- x@seg$summary[i, drop = FALSE]
+  x@seg$p <- x@seg$p[i, drop = FALSE]
 
   return(x)
 })
