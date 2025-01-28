@@ -139,9 +139,6 @@ CNV.create_anno <- function(bin_minprobes = 15, bin_minsize = 50000, bin_maxsize
       message(" - ", length(object@probes), " probes used")
     }
 
-    object@probes <- sort(probes)
-    message(" - ", length(object@probes), " probes used")
-
     if (!is.null(exclude_regions)) {
       message("importing regions to exclude from analysis")
       if (class(exclude_regions) == "GRanges") {
@@ -208,7 +205,7 @@ CNV.create_anno <- function(bin_minprobes = 15, bin_minsize = 50000, bin_maxsize
     bin_genes <- sapply(lapply(sapply(split(object@probes$genes[queryHits(o)], names(object@bins)[subjectHits(o)]),
                                       function(x) na.omit(unlist(strsplit(x,split = ";")))), unique), paste, collapse = ";")
 
-    object@bins$genes <- bin_genes
+    object@bins$genes <- bin_genes[names(object@bins)]
 
     return(object)
 
