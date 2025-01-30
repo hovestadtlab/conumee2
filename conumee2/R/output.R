@@ -937,7 +937,9 @@ setMethod("CNV.write", signature(object = "CNV.analysis"), function(object, file
     for (i in 1:ncol(object@fit$ratio)) {
       y <- object@seg$summary[[i]]
       y$seg.median <- round(object@seg$summary[[i]]$seg.median-object@bin$shift[i], 3)
-      y <- y[-which(is.element(y$chrom, c("chrX", "chrY"))),]
+      if(any(is.element(y$chrom, c("chrX", "chrY")))){
+        y <- y[-which(is.element(y$chrom, c("chrX", "chrY"))),]
+      }
       x <- rbind(x, y)
     }
     x <- x[,-c(6,7,9)]
