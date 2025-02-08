@@ -424,10 +424,17 @@ setMethod("CNV.focal", signature(object = "CNV.analysis"), function(object, sig_
 
     # Bootstrap to identify thresholds for deletions and amplifications, for each copy-number state
     boots <- bootRanges(bins, blockLength = blockLength, R = R, seg = seg, exclude = object@anno@exclude, proportionLength = proportionLength)
+    boots$state <- factor(boots$state, levels = c(1,2,3))
 
-    boots.state <- split(boots$log2, boots$state)
-    boots.state.mean <- sapply(boots.state, mean)
-    boots.state.sd <- sapply(boots.state, sd)
+    boots.state <- split(boots$log2, list(boots$iter, boots$state), sep = " ")
+    boots.state.mean <- mean(sapply(boots.state[grep(" 1", names(boots.state))], mean)) #derive mean and sd estimation from bootstrap
+    boots.state.mean <- c(boots.state.mean, mean(sapply(boots.state[grep(" 2", names(boots.state))], mean)))
+    boots.state.mean <- c(boots.state.mean, mean(sapply(boots.state[grep(" 3", names(boots.state))], mean)))
+
+    boots.state.sd <- mean(sapply(boots.state[grep(" 1", names(boots.state))], sd))
+    boots.state.sd <- c(boots.state.sd, mean(sapply(boots.state[grep(" 2", names(boots.state))], sd)))
+    boots.state.sd <- c(boots.state.sd, mean(sapply(boots.state[grep(" 3", names(boots.state))], sd)))
+
     boots.state.low <- mapply(qnorm, boots.state.mean, boots.state.sd, p=(1-conf)/2)    # assume normal distr, two-sided
     boots.state.high <- mapply(qnorm, boots.state.mean, boots.state.sd, p=1-(1-conf)/2)
 
