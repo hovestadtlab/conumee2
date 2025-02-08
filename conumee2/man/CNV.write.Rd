@@ -7,7 +7,7 @@
 \usage{
 CNV.write(object, ...)
 
-\S4method{CNV.write}{CNV.analysis}(object, file = NULL, what = "segments", threshold = 0.1)
+\S4method{CNV.write}{CNV.analysis}(object, file = NULL, what = "segments")
 }
 \arguments{
 \item{object}{\code{CNV.analysis} object.}
@@ -16,9 +16,7 @@ CNV.write(object, ...)
 
 \item{file}{Path where output file should be written to. Defaults to \code{NULL}: No file is written, table is returned as data.frame object.}
 
-\item{what}{character. This should be (an unambiguous abbreviation of) one of \code{'probes'}, \code{'bins'}, \code{'detail'}, \code{'segments'}, \code{gistic}, \code{threshold} (for CNV.summaryplot) or \code{focal}. Defaults to \code{'segments'}.}
-
-\item{threshold}{numeric. Threshold for determining the copy number state. Defaults to \code{0.1}. See Description for details.}
+\item{what}{character. This should be (an unambiguous abbreviation of) one of \code{'probes'}, \code{'bins'}, \code{'detail'}, \code{'segments'}, \code{gistic} or \code{focal}. Defaults to \code{'segments'}.}
 }
 \value{
 if parameter \code{file} is not supplied, the table is returned as a \code{data.frame} object.
@@ -27,7 +25,7 @@ if parameter \code{file} is not supplied, the table is returned as a \code{data.
 Output CNV analysis results as table.
 }
 \details{
-Function shows the output of the CNV analysis with conumee 2. To use the results as input for GISTIC choose \code{what = 'gistic'}. To assign the resulting segments to their copy number state and their size (focal, arm-level or whole chromosome) choose \code{what = 'overview'}. The threshold for the log2-ratio to identify gains or losses is \code{0.1} by default. To access the results from the Segmented Block Bootstrapping, use \code{what = focal}.
+Function shows the output of the CNV analysis with conumee 2. To use the results as input for GISTIC choose \code{what = 'gistic'}. To access the results from \code{CNV.focal}, use \code{what = focal}.
 }
 \examples{
 # prepare
@@ -53,7 +51,6 @@ CNV.write(x, what = 'detail')
 CNV.write(x, what = 'bins')
 CNV.write(x, what = 'probes')
 CNV.write(x, what = 'gistic')
-CNV.write(x, what = 'overview')
 CNV.write(x, what = 'focal')
 }
 \author{

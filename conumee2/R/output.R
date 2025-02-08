@@ -21,7 +21,6 @@
 #' @param bins_cex Default to \code{0.75}. Alternatively, the size of individual bin dots is inversely proportional to its variance of included probes' log2-ratios. Choose either \code{standardized} for fixed dot sizes (to make plots from different samples comparable) or \code{sample_level} (to scale the dot sizes for each sample individually)
 #' @param sig_cgenes logical. Should the significant genes from the Cancer Gene Census be plotted that were identified with \code{CNV.focal}? Default to \code{FALSE}.
 #' @param nsig_cgenes numeric. How many significant genes identified with \code{CNV.focal} should be plotted? Default to \code{3}. We do not recommend using values higher than 5 in order to avoid false positive results.
-#' @param focal_thresholds logical. Should the dynamic thresholds be plotted? Default to \code{TRUE}. \code{sig_cgenes} must be \code{TRUE}.
 #' @param main character vector. Title of the plot(s). Default to sample names. Please provide a vector of the same length as the number of samples.
 #' @param ylim numeric vector. The y limits of the plot. Default to \code{c(-1.25, 1.25)}.
 #' @param set_par logical. Use recommended graphical parameters for \code{oma} and \code{mar}? Defaults to \code{TRUE}. Original parameters are restored afterwards.
@@ -820,10 +819,9 @@ setMethod("CNV.heatmap", signature(object = "CNV.analysis"), function(object,
 #' @description Output CNV analysis results as table.
 #' @param object \code{CNV.analysis} object.
 #' @param file Path where output file should be written to. Defaults to \code{NULL}: No file is written, table is returned as data.frame object.
-#' @param what character. This should be (an unambiguous abbreviation of) one of \code{'probes'}, \code{'bins'}, \code{'detail'}, \code{'segments'}, \code{gistic}, \code{threshold} (for CNV.summaryplot) or \code{focal}. Defaults to \code{'segments'}.
-#' @param threshold numeric. Threshold for determining the copy number state. Defaults to \code{0.1}. See Description for details.
+#' @param what character. This should be (an unambiguous abbreviation of) one of \code{'probes'}, \code{'bins'}, \code{'detail'}, \code{'segments'}, \code{gistic} or \code{focal}. Defaults to \code{'segments'}.
 #' @param ... Additional parameters (\code{CNV.write} generic, currently not used).
-#' @details  Function shows the output of the CNV analysis with conumee 2. To use the results as input for GISTIC choose \code{what = 'gistic'}. To assign the resulting segments to their copy number state and their size (focal, arm-level or whole chromosome) choose \code{what = 'overview'}. The threshold for the log2-ratio to identify gains or losses is \code{0.1} by default. To access the results from the Segmented Block Bootstrapping, use \code{what = focal}.
+#' @details  Function shows the output of the CNV analysis with conumee 2. To use the results as input for GISTIC choose \code{what = 'gistic'}. To access the results from \code{CNV.focal}, use \code{what = focal}.
 #' @examples
 #' # prepare
 #' library(minfiData)
@@ -848,7 +846,6 @@ setMethod("CNV.heatmap", signature(object = "CNV.analysis"), function(object,
 #' CNV.write(x, what = 'bins')
 #' CNV.write(x, what = 'probes')
 #' CNV.write(x, what = 'gistic')
-#' CNV.write(x, what = 'overview')
 #' CNV.write(x, what = 'focal')
 #' @return if parameter \code{file} is not supplied, the table is returned as a \code{data.frame} object.
 #' @author Bjarne Daenekas, Volker Hovestadt \email{conumee@@hovestadt.bio}
@@ -858,8 +855,8 @@ setGeneric("CNV.write", function(object, ...) {
 })
 
 #' @rdname CNV.write
-setMethod("CNV.write", signature(object = "CNV.analysis"), function(object, file = NULL, what = "segments", threshold = 0.1) {
-  w <- pmatch(what, c("probes", "bins", "detail", "segments", "gistic", "threshold", "focal"))
+setMethod("CNV.write", signature(object = "CNV.analysis"), function(object, file = NULL, what = "segments") {
+  w <- pmatch(what, c("probes", "bins", "detail", "segments", "gistic", "focal"))
   if (w == 1) {
     if (length(object@fit) == 0)
       stop("fit unavailable, run CNV.fit")
@@ -945,26 +942,7 @@ setMethod("CNV.write", signature(object = "CNV.analysis"), function(object, file
     x <- x[,-c(6,7,9)]
     colnames(x) <- c("Sample", "Chromosome", "Start_Position", "End_Position", "Num_Markers", "Seg.CN")
     x$Chromosome <- as.numeric(gsub("chr", "", x$Chromosome))
-  } else if (w == 6) {
-    if (length(object@seg) == 0)
-      stop("seg unavailable, run CNV.segment")
-    if (!is.null(file))
-      if (!grepl(".seg$", file))
-        warning("filename does not end in .seg")
-    # seg format, last numeric column is used in igv
-    x <- data.frame(matrix(ncol = 0, nrow = 0))
-    for (i in 1:ncol(object@fit$ratio)) {
-      y <- object@seg$summary[[i]]
-      y$seg.median <- round(object@seg$summary[[i]]$seg.median -object@bin$shift[i], 3)
-      x <- rbind(x, y)
-    }
-    x <- x[,-c(6,7,9)]
-    colnames(x) <- c("Sample", "Chromosome", "Start_Position", "End_Position", "Num_Markers", "Seg.CN")
-    new_col <- replicate(nrow(x), "balanced")
-    new_col[which(x$Seg.CN >= threshold)] <- "gain"
-    new_col[which(x$Seg.CN <= -threshold)] <- "loss"
-    x$Alteration <- new_col
-  } else if (w == 7){
+  } else if (w == 6){
     stop("Please run CNV.focal")
     x <- vector(mode='list', length = 6)
     x[[1]] <- object@detail$amp.bins

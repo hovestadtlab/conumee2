@@ -60,8 +60,6 @@ CNV.genomeplot(object, ...)
 \item{res}{numeric. Resolution of the saved .png files. Defaults to \code{720}}
 
 \item{cols}{character vector. Colors to use for plotting intensity levels of bins. Centered around 0. Defaults to \code{c("darkblue","darkblue", "lightgrey", "#F16729", "#F16729")}.}
-
-\item{focal_thresholds}{logical. Should the dynamic thresholds be plotted? Default to \code{TRUE}. \code{sig_cgenes} must be \code{TRUE}.}
 }
 \value{
 \code{NULL}.
