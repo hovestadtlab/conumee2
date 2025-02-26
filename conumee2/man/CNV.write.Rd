@@ -7,7 +7,7 @@
 \usage{
 CNV.write(object, ...)
 
-\S4method{CNV.write}{CNV.analysis}(object, file = NULL, what = "segments")
+\S4method{CNV.write}{CNV.analysis}(object, file = NULL, what = "segments", threshold = 0.1)
 }
 \arguments{
 \item{object}{\code{CNV.analysis} object.}
@@ -17,6 +17,8 @@ CNV.write(object, ...)
 \item{file}{Path where output file should be written to. Defaults to \code{NULL}: No file is written, table is returned as data.frame object.}
 
 \item{what}{character. This should be (an unambiguous abbreviation of) one of \code{'probes'}, \code{'bins'}, \code{'detail'}, \code{'segments'}, \code{gistic} or \code{focal}. Defaults to \code{'segments'}.}
+
+\item{threshold}{numeric. This parameter is used internally for creating summaryplots. It should not be changed. If you intend to change the threshold for summaryplots, please do so within the \code{CNV.summaryplot} function.}
 }
 \value{
 if parameter \code{file} is not supplied, the table is returned as a \code{data.frame} object.

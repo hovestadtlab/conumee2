@@ -820,6 +820,7 @@ setMethod("CNV.heatmap", signature(object = "CNV.analysis"), function(object,
 #' @param object \code{CNV.analysis} object.
 #' @param file Path where output file should be written to. Defaults to \code{NULL}: No file is written, table is returned as data.frame object.
 #' @param what character. This should be (an unambiguous abbreviation of) one of \code{'probes'}, \code{'bins'}, \code{'detail'}, \code{'segments'}, \code{gistic} or \code{focal}. Defaults to \code{'segments'}.
+#' @param threshold numeric. This parameter is used internally for creating summaryplots. It should not be changed. If you intend to change the threshold for summaryplots, please do so within the \code{CNV.summaryplot} function.
 #' @param ... Additional parameters (\code{CNV.write} generic, currently not used).
 #' @details  Function shows the output of the CNV analysis with conumee 2. To use the results as input for GISTIC choose \code{what = 'gistic'}. To access the results from \code{CNV.focal}, use \code{what = focal}.
 #' @examples
@@ -855,8 +856,8 @@ setGeneric("CNV.write", function(object, ...) {
 })
 
 #' @rdname CNV.write
-setMethod("CNV.write", signature(object = "CNV.analysis"), function(object, file = NULL, what = "segments") {
-  w <- pmatch(what, c("probes", "bins", "detail", "segments", "gistic", "focal"))
+setMethod("CNV.write", signature(object = "CNV.analysis"), function(object, file = NULL, what = "segments", threshold = 0.1) {
+  w <- pmatch(what, c("probes", "bins", "detail", "segments", "gistic", "threshold", "focal"))
   if (w == 1) {
     if (length(object@fit) == 0)
       stop("fit unavailable, run CNV.fit")
@@ -942,13 +943,34 @@ setMethod("CNV.write", signature(object = "CNV.analysis"), function(object, file
     x <- x[,-c(6,7,9)]
     colnames(x) <- c("Sample", "Chromosome", "Start_Position", "End_Position", "Num_Markers", "Seg.CN")
     x$Chromosome <- as.numeric(gsub("chr", "", x$Chromosome))
-  } else if (w == 6){
-    stop("Please run CNV.focal")
+  } else if (w == 6) {
+    if (length(object@seg) == 0)
+      stop("seg unavailable, run CNV.segment")
+    if (!is.null(file))
+      if (!grepl(".seg$", file))
+        warning("filename does not end in .seg")
+    # seg format, last numeric column is used in igv
+    x <- data.frame(matrix(ncol = 0, nrow = 0))
+    for (i in 1:ncol(object@fit$ratio)) {
+      y <- object@seg$summary[[i]]
+      y$seg.median <- round(object@seg$summary[[i]]$seg.median -object@bin$shift[i], 3)
+      x <- rbind(x, y)
+    }
+    x <- x[,-c(6,7,9)]
+    colnames(x) <- c("Sample", "Chromosome", "Start_Position", "End_Position", "Num_Markers", "Seg.CN")
+    new_col <- replicate(nrow(x), "balanced")
+    new_col[which(x$Seg.CN >= threshold)] <- "gain"
+    new_col[which(x$Seg.CN <= -threshold)] <- "loss"
+    x$Alteration <- new_col
+  } else if (w == 7){
+    if(!is.element("amp.detail.regions",names(object@detail))){
+      stop("Please run CNV.focal")
+    }
     x <- vector(mode='list', length = 6)
-    x[[1]] <- object@detail$amp.bins
-    x[[2]] <- object@detail$del.bins
-    x[[3]] <- object@detail$amp.detail.regions
-    x[[4]] <- object@detail$del.detail.regions
+    x[[1]] <- object@detail$amp.detail.regions
+    x[[2]] <- object@detail$del.detail.regions
+    x[[3]] <- object@detail$amp.bins
+    x[[4]] <- object@detail$del.bins
     x[[5]] <- object@detail$amp.cancer.genes
     x[[6]] <- object@detail$del.cancer.genes
     names(x) <- c("bins within amplified regions", "bins within lost regions", "amplified detail regions",
@@ -959,6 +981,9 @@ setMethod("CNV.write", signature(object = "CNV.analysis"), function(object, file
   if (is.null(file)) {
     return(x)
   } else {
+    if(w == 7){
+    stop("please save results from focal analysis manually")
+    }
     write.table(x, file = file, quote = FALSE, sep = "\t", row.names = FALSE)
   }
 })
