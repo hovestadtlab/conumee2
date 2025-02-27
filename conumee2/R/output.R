@@ -973,8 +973,8 @@ setMethod("CNV.write", signature(object = "CNV.analysis"), function(object, file
     x[[4]] <- object@detail$del.bins
     x[[5]] <- object@detail$amp.cancer.genes
     x[[6]] <- object@detail$del.cancer.genes
-    names(x) <- c("bins within amplified regions", "bins within lost regions", "amplified detail regions",
-                  "deleted detail regions", "amplified genes from the Cancer Gene Census", "deleted genes from the Cancer Gene Census")
+    names(x) <- c("amplified detail regions", "deleted detail regions", "bins within amplified regions",
+                  "bins within lost regions", "amplified genes from the Cancer Gene Census", "deleted genes from the Cancer Gene Census")
   } else{
     stop("value for what is ambigious.")
   }
