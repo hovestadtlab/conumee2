@@ -359,16 +359,14 @@ NULL
 #' @param proportionLength logical. From the \code{nullranges} package: for the segmented block bootstrap, whether to use scaled block lengths, (scaling by the proportion of the segmentation state out of the total genome length)
 #' @param ... Additional parameters (\code{CNV.detailplot} generic, currently not used).
 #' @return A \code{CNV.analysis} object with significantly altered bins and predefined focal regions of interest.
-#' @details This function should facilitate the detection of CNVs that affect single genes. K-means clustering is used to assign each segment to a copy-number state. The mean and standard deviation for each state derived from Segmented Block Bootstrapping is used to model a normal distribution for each state. The confidence interval is used to define state-spefici thresholds for focal CNVs.
+#' @details This function should facilitate the detection of CNVs that affect single genes.
 #' @examples
 #'
-#' x <- CNV.focal(x, sig_cgenes = TRUE, conf = 0.99, R = 100, blockLength = 500000)
+#' x <- CNV.focal(x, conf = 0.99, R = 100, blockLength = 500000)
 #' x@@detail$del.bins  #bins that are part of deletions.
 #' x@@detail$amp.bins  #bins that are part of amplifications.
 #' x@@detail$del.detail.regions #deleted predefined regions
 #' x@@detail$amp.detail.regions #amplified predefined regions
-#' x@@detail$del.cancer.genes #deleted genes from the Cancer Gene Census
-#' x@@detail$amp.cancer.genes #amplified genes from the Cancer Gene Census
 #'
 #'
 #' @author Bjarne Daenekas, Volker Hovestadt \email{conumee@@hovestadt.bio}
@@ -398,22 +396,27 @@ setMethod("CNV.focal", signature(object = "CNV.analysis"), function(object, sig_
     message(paste(colnames(object@fit$ratio)[i]), " (",round(i/ncol(object@fit$ratio)*100, digits = 3), "%", ")", sep = "")
 
     # Perform k-means on segments to identify likely copy-number state
-    segs <- object@seg$summary[[i]]
-    segs <- GRanges(seqnames = segs$chrom, IRanges(start = segs$loc.start, end = segs$loc.end), seqinfo = Seqinfo(genome = object@anno@args$genome))
-    seqlevels(segs) <- object@anno@genome$chr
-    segs$seg.median <- object@seg$summary[[i]]$seg.median - object@bin$shift[i]
-    segs$num.markers <- object@seg$summary[[i]]$num.mark
-    segs <- sort(segs)
+    segs.c <- object@seg$summary[[i]]
+    segs.c <- GRanges(seqnames = segs.c$chrom, IRanges(start = segs.c$loc.start, end = segs.c$loc.end), seqinfo = Seqinfo(genome = object@anno@args$genome))
+    seqlevels(segs.c) <- object@anno@genome$chr
+    segs.c$seg.median <- object@seg$summary[[i]]$seg.median - object@bin$shift[i]
+    segs.c$num.markers <- object@seg$summary[[i]]$num.mark
+
+    segs.del <- segs.c[!segs.c$seg.median>=-0.8] # exclude outliers for threshold calculation
+    segs.amp <- segs.c[segs.c$seg.median>0.8]
+    segs <- sort(segs.c[segs.c$seg.median>-0.8 & segs.c$seg.median<0.8])
 
     segs.rep <- rep(segs$seg.median, segs$num.markers)
     km <- kmeans(segs.rep, centers=3, nstart=25)
 
     bins.log2 <- object@bin$ratio[[i]] - object@bin$shift[i]
-    bins <- object@anno@bins[names(bins.log2)]
-    bins$weight <- 1/object@bin$variance[[i]][names(bins.log2)]
-    bins$log2 <- as.numeric(bins.log2)
+    bins.c <- object@anno@bins[names(bins.log2)]
+    bins.c$log2 <- as.numeric(bins.log2)
+    seqinfo(bins.c) <- Seqinfo(genome = object@anno@args$genome)
+    bins <- sort(bins.c[queryHits(findOverlaps(bins.c, segs, type = "any"))])
     bins$state <- rank(km$centers[, 1])[km$cluster]
-    seqinfo(bins) <- Seqinfo(genome = object@anno@args$genome)
+    median.s <- sapply(split(bins$log2, bins$state), median)
+    sd.s <- sapply(split(bins$log2, bins$state), sd)
 
     seg <- lapply(seq_len(3), function(s){
       x <- reduce(bins[bins$state == s])
@@ -423,20 +426,34 @@ setMethod("CNV.focal", signature(object = "CNV.analysis"), function(object, sig_
     seg <- c(seg[[1]], seg[[2]], seg[[3]])
 
     # Bootstrap to identify thresholds for deletions and amplifications, for each copy-number state
-    boots <- bootRanges(bins, blockLength = blockLength, R = R, seg = seg, exclude = object@anno@exclude, proportionLength = proportionLength)
+    boots <- bootRanges(bins, blockLength = blockLength, R = R, seg = seg, proportionLength = proportionLength)
     boots$state <- factor(boots$state, levels = c(1,2,3))
-
     boots.state <- split(boots$log2, list(boots$iter, boots$state), sep = " ")
-    boots.state.mean <- mean(sapply(boots.state[grep(" 1", names(boots.state))], mean)) #derive mean and sd estimation from bootstrap
-    boots.state.mean <- c(boots.state.mean, mean(sapply(boots.state[grep(" 2", names(boots.state))], mean)))
-    boots.state.mean <- c(boots.state.mean, mean(sapply(boots.state[grep(" 3", names(boots.state))], mean)))
+
+    boots.state.median <- mean(sapply(boots.state[grep(" 1", names(boots.state))], median)) #derive bias-adjusted median and sd estimation from bootstrap
+    boots.state.median <- c(boots.state.median, mean(sapply(boots.state[grep(" 2", names(boots.state))], median)))
+    boots.state.median <- 2*median.s - c(boots.state.median, mean(sapply(boots.state[grep(" 3", names(boots.state))], median)))
 
     boots.state.sd <- mean(sapply(boots.state[grep(" 1", names(boots.state))], sd))
     boots.state.sd <- c(boots.state.sd, mean(sapply(boots.state[grep(" 2", names(boots.state))], sd)))
-    boots.state.sd <- c(boots.state.sd, mean(sapply(boots.state[grep(" 3", names(boots.state))], sd)))
+    boots.state.sd <- 2*sd.s - c(boots.state.sd, mean(sapply(boots.state[grep(" 3", names(boots.state))], sd)))
 
-    boots.state.low <- mapply(qnorm, boots.state.mean, boots.state.sd, p=(1-conf)/2)    # assume normal distr, two-sided
-    boots.state.high <- mapply(qnorm, boots.state.mean, boots.state.sd, p=1-(1-conf)/2)
+    boots.state.low <- mapply(qnorm, boots.state.median, boots.state.sd, p=(1-conf)/2) #assume normal distribution, two-sided
+    boots.state.high <- mapply(qnorm, boots.state.median, boots.state.sd, p=1-(1-conf)/2)
+
+    if(length(segs.del)>=1){
+      bins.seg.del <- bins.c[queryHits(findOverlaps(bins.c, segs.del, type = "any"))]
+      bins.seg.del$state <- 1
+      bins <- sort(c(bins, bins.seg.del))
+      segs.del$state <- 1
+      seg <- sort(c(seg, segs.del))}
+
+    if(length(segs.amp)>=1){
+      bins.seg.amp <- bins.c[queryHits(findOverlaps(bins.c, segs.amp, type = "any"))]
+      bins.seg.amp$state <- 3
+      bins <- sort(c(bins, bins.seg.amp))
+      segs.amp$state <- 3
+      seg <- sort(c(seg, segs.amp))}
 
     bins.total <- object@bin$ratio[[i]] - object@bin$shift[i]
     bins.amp <- sort(bins.total[bins.total >= boots.state.high[bins$state]], decreasing = TRUE)
