@@ -359,7 +359,8 @@ NULL
 #' @param proportionLength logical. From the \code{nullranges} package: for the segmented block bootstrap, whether to use scaled block lengths, (scaling by the proportion of the segmentation state out of the total genome length)
 #' @param ... Additional parameters (\code{CNV.detailplot} generic, currently not used).
 #' @return A \code{CNV.analysis} object with significantly altered bins and predefined focal regions of interest.
-#' @details This function should facilitate the detection of CNVs that affect single genes.
+#' @details This function should facilitate the detection of CNVs that affect single genes. Segmented Block Bootstrapping is applied to model a normal distribution of bins for each copy-number state. Two-sided confidence intervals are applied to calculate dynamic thresholds for amplifications and losses.
+
 #' @examples
 #'
 #' x <- CNV.focal(x, conf = 0.99, R = 100, blockLength = 500000)

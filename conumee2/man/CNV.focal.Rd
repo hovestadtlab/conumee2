@@ -39,17 +39,15 @@ A \code{CNV.analysis} object with significantly altered bins and predefined foca
 This function aims to detect focal CNVs that are defined as \code{detail_regions} in the annotation object.
 }
 \details{
-This function should facilitate the detection of CNVs that affect single genes. K-means clustering is used to assign each segment to a copy-number state. The mean and standard deviation for each state derived from Segmented Block Bootstrapping is used to model a normal distribution for each state. The confidence interval is used to define state-spefici thresholds for focal CNVs.
+This function should facilitate the detection of CNVs that affect single genes. Segmented Block Bootstrapping is applied to model a normal distribution of bins for each copy-number state. Two-sided confidence intervals are applied to calculate dynamic thresholds for amplifications and losses.
 }
 \examples{
 
-x <- CNV.focal(x, sig_cgenes = TRUE, conf = 0.99, R = 100, blockLength = 500000)
+x <- CNV.focal(x, conf = 0.99, R = 100, blockLength = 500000)
 x@detail$del.bins  #bins that are part of deletions.
 x@detail$amp.bins  #bins that are part of amplifications.
 x@detail$del.detail.regions #deleted predefined regions
 x@detail$amp.detail.regions #amplified predefined regions
-x@detail$del.cancer.genes #deleted genes from the Cancer Gene Census
-x@detail$amp.cancer.genes #amplified genes from the Cancer Gene Census
 
 
 }
