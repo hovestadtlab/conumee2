@@ -1,7 +1,7 @@
 Package: conumee2
 Title: Enhanced copy-number variation analysis using Illumina DNA methylation
     arrays for humans and mice
-Version: 2.1
+Version: 2.1.1
 Author: Bjarne Daenekas, Volker Hovestadt, Marc Zapatka
 Maintainer: Volker Hovestadt <conumee@hovestadt.bio>
 Address: Department of Pediatric Oncology, Dana-Farber Cancer Institute, Boston, USA
@@ -42,4 +42,4 @@ Collate:
 biocViews: CopyNumberVariation, DNAMethylation, MethylationArray, Microarray,
     Normalization, Preprocessing, QualityControl, Software
 VignetteBuilder: knitr
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.2
