@@ -134,6 +134,7 @@ CNV.create_anno <- function(bin_minprobes = 15, bin_minsize = 50000, bin_maxsize
       object@probes <- sort(probes)
       message(" - ", length(object@probes), " probes used")
     }else{
+      features <- intersect(features, names(probes)) # sesame keeps ch probes
       object@probes <- sort(probes[features])
       message(" - ", length(object@probes), " probes used")
     }
