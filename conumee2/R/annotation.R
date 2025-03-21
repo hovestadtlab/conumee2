@@ -393,8 +393,21 @@ CNV.merge_bins <- function(genome.anno, genome.tile, bin_minprobes = 15, genome.
   values(genome.tile.bin)$midpoint <- as.integer(start(genome.tile.bin) +
                                                    (end(genome.tile.bin) - start(genome.tile.bin))/2)
 
-  names(genome.tile.bin) <- paste(as.vector(seqnames(genome.tile.bin)), formatC(unlist(lapply(table(seqnames(genome.tile.bin)),
-                                                                                              seq)), width = nchar(max(table(seqnames(genome.tile.bin)))), format = "d",
-                                                                                flag = "0"), sep = "-")
+  bins <- paste(as.vector(seqnames(genome.tile.bin)), 
+                formatC(unlist(lapply(table(seqnames(genome.tile.bin)), seq)), 
+                        width = nchar(max(table(seqnames(genome.tile.bin)))),
+                        format = "d", 
+                        flag = "0"), 
+                sep = "-")
+
+  # bizarre error if scanning chrX but not chrY
+  if (length(bins) != length(genome.tile.bin)) {
+    bins <- bins[seq_along(genome.tile.bin)]
+    binchrs <- sapply(strsplit(bins, "\\-"), "[", 1)
+    stopifnot(identical(as.character(decode(seqnames(genome.tile.bin))), 
+                        binchrs))
+  } 
+
+  names(genome.tile.bin) <- bins
   return(genome.tile.bin)
 }
