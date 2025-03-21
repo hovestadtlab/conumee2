@@ -1113,6 +1113,25 @@ CNV.plotly <- function(x, sample = colnames(x@fit$ratio)[1]){
 }
 
 
+# avoid silly issues with saveRDS for CNV.analysis 
+setMethod("containsOutOfMemoryData", "CNV.analysis", 
+          function(object) FALSE)
+setMethod("saveRDS", "CNV.analysis", 
+          function(object, file = "", ascii = FALSE, version = NULL, compress = TRUE, refhook = NULL) {
+            if (containsOutOfMemoryData(object)) warning("Cannot serialize!")
+            base::saveRDS(object, file = file, ascii = ascii, version = version,
+                          compress = compress, refhook = refhook)
+          })
 
 
+
+# avoid silly issues with saveRDS for CNV.anno
+setMethod("containsOutOfMemoryData", "CNV.anno", 
+          function(object) FALSE)
+setMethod("saveRDS", "CNV.anno", 
+          function(object, file = "", ascii = FALSE, version = NULL, compress = TRUE, refhook = NULL) {
+            if (containsOutOfMemoryData(object)) warning("Cannot serialize!")
+            base::saveRDS(object, file = file, ascii = ascii, version = version,
+                          compress = compress, refhook = refhook)
+          })
 

@@ -10,7 +10,7 @@ CNV.create_anno(
   bin_maxsize = 5e+06,
   array_type = "450k",
   genome = "hg19",
-  features = "all",
+  features = NULL,
   exclude_regions = NULL,
   detail_regions = NULL,
   chrXY = FALSE
@@ -27,7 +27,7 @@ CNV.create_anno(
 
 \item{genome}{character. This parameter can be set to \code{hg38} when working with EPICv2 data. It will be ignored if \code{array_type = mouse}.}
 
-\item{features}{vector. Per default, all unique CpGs on the array are used for the analysis. Please provide a vector with Probe IDs to create a customized set of probes.}
+\item{features}{vector. Per default (i.e., if left set to NULL), all unique CpGs on the array are used for the analysis. Provide a vector with Probe IDs to instead create a customized set of probes, as for sesame-masked intensities.}
 
 \item{exclude_regions}{GRanges object or path to bed file containing genomic regions to be excluded.}
 
