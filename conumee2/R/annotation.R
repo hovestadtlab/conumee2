@@ -12,7 +12,7 @@ NULL
 #' @param bin_minprobes numeric. Minimum number of probes per bin. Bins are iteratively merged with neighboring bin until minimum number is reached.
 #' @param bin_minsize numeric. Minimum size of a bin.
 #' @param bin_maxsize numeric. Maximum size of a bin. Merged bins that are larger are filtered out.
-#' @param array_type character. One of \code{450k}, \code{EPIC}, \code{EPICv2}, \code{mouse}. When analyzing data from multiple array types, choose between \code{overlap.1} for 450k and EPIC, \code{overlap.2} for EPIC and EPICv2 or \code{overlap.3} for 450k, EPIC, EPICv2.
+#' @param array_type character. One of \code{450k}, \code{EPIC}, \code{EPICv2}, \code{mouse}. When analyzing data from multiple array types, use e.g. \code{c("450k", "EPIC")} for 450k and EPIC or \code{c("450k", "EPIC", "EPICv2")} for 450k, EPIC, EPICv2.
 #' @param genome character. This parameter can be set to \code{hg38} when working with EPICv2 data. It will be ignored if \code{array_type = mouse}.
 #' @param features vector. Per default (i.e., if left set to NULL), all unique CpGs on the array are used for the analysis. Provide a vector with Probe IDs to instead create a customized set of probes, as for sesame-masked intensities.
 #' @param exclude_regions GRanges object or path to bed file containing genomic regions to be excluded.
