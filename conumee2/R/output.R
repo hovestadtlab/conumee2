@@ -1292,7 +1292,7 @@ CNV.writefocal <- function(object, file = NULL, threshold = 0.1) {
     res <- res[names(x)] 
     res$seg.CN <- x
     res$Alteration <- CNV.alteration(x, threshold=threshold)
-    res <- as.data.frame(sort(subset(res, Alteration != "balanced")))
+    res <- as.data.frame(sort(res)) # quirk avoidance 
     names(res) <- sub("seqnames", "chrom", names(res))
     names(res) <- sub("name", "gene", names(res))
     res$strand <- NULL 
@@ -1316,7 +1316,6 @@ CNV.writefocal <- function(object, file = NULL, threshold = 0.1) {
   if (!is.null(file)) {
 
     if (!grepl(".txt$", file)) warning("suffix is not .txt")
-    # {{{ various contortions to massage output into a usable form
     amped <- which(vapply(object@detail$amp.detail.regions, length, 1L) > 0)
     resamp <- .unroll(lapply(amped, 
                              function(x) 
@@ -1334,7 +1333,6 @@ CNV.writefocal <- function(object, file = NULL, threshold = 0.1) {
     firstCols <- c("Sample", "gene", "Alteration")
     dropCols <- c("strand", "width", "state")
     x <- x[, c(firstCols, setdiff(names(x), c(firstCols, dropCols)))]
-    # }}}
     CNV.writeoutput(x, file = file) # yeah yeah, I don't want to hear about it
 
   } else { 
