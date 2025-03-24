@@ -632,7 +632,6 @@ setMethod("CNV.summaryplot", signature(object = "CNV.analysis"),
     par(mfrow = c(1, 1), mar = c(4, 4, 4, 4), oma = c(0, 0, 0, 0))
   }
 
-  # oh yay some undocumented options, love these 
   y <- CNV.write(object, what = "threshold", threshold = threshold)
 
   message("creating summaryplot")
@@ -1142,8 +1141,25 @@ CNV.writesegments <- function(object, file = NULL, threshold = 0.1) {
 #'
 CNV.writethreshold <- function(object, file = NULL, threshold = 0.1) { 
 
-  res <- CNV.writegistic(object, file = file, threshold = threshold)
-  subset(res, abs(Seg.CN) >= threshold)
+  if (length(object@seg) == 0) stop("seg unavailable, run CNV.segment")
+  if (!is.null(file)) if (!grepl(".seg$", file)) warning("suffix is not .seg")
+
+  # seg format, last numeric column is used in igv
+  x <- data.frame(matrix(ncol = 0, nrow = 0))
+  for (i in 1:ncol(object@fit$ratio)) {
+    y <- object@seg$summary[[i]]
+    y$seg.median <- round(object@seg$summary[[i]]$seg.median -
+                          object@bin$shift[i], 3)
+    x <- rbind(x, y)
+  }
+  x <- x[,-c(6,7,9)]
+  colnames(x) <- c("Sample", "Chromosome", "Start_Position", "End_Position", 
+                   "Num_Markers", "Seg.CN")
+  new_col <- replicate(nrow(x), "balanced")
+  new_col[which(x$Seg.CN >= threshold)] <- "gain"
+  new_col[which(x$Seg.CN <= (-1 * threshold))] <- "loss"
+  x$Alteration <- new_col
+  CNV.writeoutput(x, file = file)
 
 }
 
