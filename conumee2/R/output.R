@@ -1292,7 +1292,7 @@ CNV.writefocal <- function(object, file = NULL, threshold = 0.1) {
     res <- res[names(x)] 
     res$seg.CN <- x
     res$Alteration <- CNV.alteration(x, threshold=threshold)
-    res <- as.data.frame(sort(subset(res, Alteration != states[2])))
+    res <- as.data.frame(sort(subset(res, Alteration != "balanced")))
     names(res) <- sub("seqnames", "chrom", names(res))
     names(res) <- sub("name", "gene", names(res))
     res$strand <- NULL 
