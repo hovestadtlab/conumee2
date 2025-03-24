@@ -10,7 +10,7 @@ CNV.write(object, ...)
 \S4method{CNV.write}{CNV.analysis}(
   object,
   file = NULL,
-  what = c("segments", "probes", "bins", "detail", "gistic", "focal"),
+  what = c("segments", "probes", "bins", "detail", "gistic", "focal", "threshold"),
   threshold = 0.1
 )
 }

@@ -607,8 +607,8 @@ setGeneric("CNV.summaryplot", function(object, ...) {
 })
 
 #' @rdname CNV.summaryplot
-setMethod("CNV.summaryplot", signature(object = "CNV.analysis"), function(object,
-                                                                          set_par = TRUE, main = NULL, output = "local", directory = getwd(), width = 12, height = 6, res = 720, threshold = 0.1,...) {
+setMethod("CNV.summaryplot", signature(object = "CNV.analysis"), 
+          function(object, set_par = TRUE, main = NULL, output = "local", directory = getwd(), width = 12, height = 6, res = 720, threshold = 0.1, ...) {
 
   if (set_par) {
     mfrow_original <- par()$mfrow
@@ -632,6 +632,7 @@ setMethod("CNV.summaryplot", signature(object = "CNV.analysis"), function(object
     par(mfrow = c(1, 1), mar = c(4, 4, 4, 4), oma = c(0, 0, 0, 0))
   }
 
+  # oh yay some undocumented options, love these 
   y <- CNV.write(object, what = "threshold", threshold = threshold)
 
   message("creating summaryplot")
@@ -858,7 +859,7 @@ setGeneric("CNV.write", function(object, ...) {
 
 #' @rdname CNV.write
 setMethod("CNV.write", signature(object = "CNV.analysis"), 
-          function(object, file = NULL, what = c("segments", "probes", "bins", "detail", "gistic", "focal"), threshold = 0.1) {
+          function(object, file = NULL, what = c("segments", "probes", "bins", "detail", "gistic", "focal", "threshold"), threshold = 0.1) {
 
             switch(match.arg(what), 
                    segments = CNV.writesegments(object, file, threshold),
@@ -866,7 +867,8 @@ setMethod("CNV.write", signature(object = "CNV.analysis"),
                    bins = CNV.writebins(object, file, threshold),
                    detail = CNV.writedetail(object, file, threshold),
                    gistic = CNV.writegistic(object, file, threshold),
-                   focal= CNV.writefocal(object, file, threshold))
+                   focal= CNV.writefocal(object, file, threshold),
+                   threshold = CNV.writethreshold(object, file, threshold))
           
           })
 
@@ -1110,6 +1112,38 @@ CNV.writesegments <- function(object, file = NULL, threshold = 0.1) {
   xx <- do.call(rbind, x)
   rownames(xx) <- NULL
   CNV.writeoutput(xx, file = file)
+
+}
+
+
+#' CNV.writethreshold
+#'
+#' @description Output thresholed CNV segments. 
+#' @param object \code{CNV.analysis} object.
+#' @param file Path where output file should be written to. Defaults to \code{NULL}: No file is written, table is returned as data.frame object.
+#' @param threshold numeric. This parameter is used internally for creating summaryplots. It should not be changed. If you intend to change the threshold for summaryplots, please do so within the \code{CNV.summaryplot} function.
+#'
+#' @return if parameter \code{file} is not supplied, the table is returned as a \code{data.frame} object.
+#'
+#' @examples
+#' library(minfiData)
+#' data(MsetEx)
+#' d <- CNV.load(MsetEx)
+#' data(detail_regions)
+#' anno <- CNV.create_anno(detail_regions = detail_regions)
+#' x <- CNV.segment(CNV.detail(CNV.bin(CNV.fit(query = d['GroupB_1'],
+#'     ref = d[c('GroupA_1', 'GroupA_2', 'GroupA_3')], anno))))
+#'
+#' # output text files
+#' CNV.writethreshold(x)
+#'
+#' @author Tim Triche \email{trichelab@@gmail.com}
+#' @export
+#'
+CNV.writethreshold <- function(object, file = NULL, threshold = 0.1) { 
+
+  res <- CNV.writesegments(object, file = file, threshold = threshold)
+  subset(res, abs(seg.median) >= threshold)
 
 }
 
