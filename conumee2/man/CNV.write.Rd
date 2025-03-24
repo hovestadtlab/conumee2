@@ -7,7 +7,12 @@
 \usage{
 CNV.write(object, ...)
 
-\S4method{CNV.write}{CNV.analysis}(object, file = NULL, what = "segments", threshold = 0.1)
+\S4method{CNV.write}{CNV.analysis}(
+  object,
+  file = NULL,
+  what = c("segments", "probes", "bins", "detail", "gistic", "threshold", "focal"),
+  threshold = 0.1
+)
 }
 \arguments{
 \item{object}{\code{CNV.analysis} object.}

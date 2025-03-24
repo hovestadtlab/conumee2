@@ -855,117 +855,444 @@ setGeneric("CNV.write", function(object, ...) {
   standardGeneric("CNV.write")
 })
 
+
 #' @rdname CNV.write
-setMethod("CNV.write", signature(object = "CNV.analysis"), function(object, file = NULL, what = "segments", threshold = 0.1) {
-  w <- pmatch(what, c("probes", "bins", "detail", "segments", "gistic", "threshold", "focal"))
-  if (w == 1) {
-    if (length(object@fit) == 0)
-      stop("fit unavailable, run CNV.fit")
-    if (!is.null(file))
-      if (!grepl(".igv$", file))
-        warning("filename does not end in .igv")
+setMethod("CNV.write", signature(object = "CNV.analysis"), 
+          function(object, file = NULL, what = c("segments", "probes", "bins", "detail", "gistic", "threshold", "focal"), threshold = 0.1) {
 
-    x <- data.frame(Chromosome = as.vector(seqnames(object@anno@probes)),
-                    Start = start(object@anno@probes) - 1, End = end(object@anno@probes),
-                    Feature = rownames(object@fit$ratio), row.names = NULL)
+            switch(match.arg(what), 
+                   segments = CNV.writesegments(object, file, threshold),
+                   probes = CNV.writeprobes(object, file, threshold),
+                   bins = CNV.writebins(object, file, threshold),
+                   detail = CNV.writedetail(object, file, threshold),
+                   gistic = CNV.writegistic(object, file, threshold),
+                   threshold = CNV.writethreshold(object, file, threshold),
+                   focal= CNV.writefocal(object, file, threshold))
+          
+          })
 
-    for (i in 1:ncol(object@fit$ratio)) {
-      x <- cbind(x,round(object@fit$ratio[,i] - object@bin$shift[i], 3))
-    }
-    colnames(x) <- c("Chromosome","Start", "End","Feature", colnames(object@fit$ratio))
-  } else if (w == 2) {
-    if (length(object@bin) == 0)
-      stop("bin unavailable, run CNV.bin")
-    if (!is.null(file))
-      if (!grepl(".igv$", file))
-        warning("filename does not end in .igv")
 
-    x <- data.frame(Chromosome = as.vector(seqnames(object@anno@bins)),
-                    Start = start(object@anno@bins), End = end(object@anno@bins),
-                    Feature = names(object@anno@bins), row.names = NULL)
-    for (i in 1:ncol(object@fit$ratio)){
-      x <- cbind(x, round(object@bin$ratio[[i]] - object@bin$shift[i], 3))
-    }
-    colnames(x) <- c("Chromosome","Start", "End","Feature", colnames(object@fit$ratio))
-  } else if (w == 3) {
-    if (length(object@detail) == 0)
-      stop("detail unavailable, run CNV.bin")
-    if (!is.null(file))
-      if (!grepl(".txt$", file))
-        warning("filename does not end in .txt")
+#' CNV.writefile
+#'
+#' @description helper function for CNV.write* methods.
+#' @param x     results of CNV.write* methods (internally)
+#' @param file  path to file output. if NULL, return a data.frame. 
+#'
+#' @return      if \code{file} is NULL, return x as a \code{data.frame}.
+#'
+#' @examples
+#' library(minfiData)
+#' data(MsetEx)
+#' d <- CNV.load(MsetEx)
+#' data(detail_regions)
+#' anno <- CNV.create_anno(detail_regions = detail_regions)
+#'
+#' x <- CNV.segment(CNV.detail(CNV.bin(CNV.fit(query = d['GroupB_1'],
+#'     ref = d[c('GroupA_1', 'GroupA_2', 'GroupA_3')], anno))))
+#'
+#' # output a data.frame
+#' out <- CNV.writebins(x)
+#'
+#' # now output that to a file
+#' tmp <- tempfile(fileext=".igv")
+#' CNV.writefile(out, file=tmp)
+#'
+#' @author Tim Triche \email{trichelab@@gmail.com}
+#' @export
+#'
+CNV.writefile <- function(x, file = NULL) { 
 
-    x <- vector(mode = "list", length = ncol(object@fit$ratio))
+  if (!is.null(file)) {
+    write.table(x, file = file, quote = FALSE, sep = "\t", row.names = FALSE)
+  } else { 
+    return(x)
+  }
 
-    for (i in 1:ncol(object@fit$ratio)) {
-      x[[i]] <- data.frame(Chromosome= as.vector(seqnames(object@anno@detail)),
-                           Start = start(object@anno@detail), End = end(object@anno@detail),
-                           Name = names(object@detail$probes), Sample = colnames(object@fit$ratio)[i],
-                           Value = round(object@detail$ratio[[i]] - object@bin$shift[i], 3), Probes = as.numeric(object@detail$probes), row.names = NULL)
-    }
-    names(x) <- colnames(object@fit$ratio)
-  } else if (w == 4) {
-    if (length(object@seg) == 0)
-      stop("seg unavailable, run CNV.bin")
-    if (!is.null(file))
-      if (!grepl(".seg$", file))
-        warning("filename does not end in .seg")
+}
 
-    x <- vector(mode = "list", length = ncol(object@fit$ratio))
 
-    for (i in 1:ncol(object@fit$ratio)) {
-      x[[i]] <- data.frame(ID = colnames(object@fit$ratio)[i], chrom = object@seg$summary[[i]]$chrom,
-                           loc.start = object@seg$summary[[i]]$loc.start, loc.end = object@seg$summary[[i]]$loc.end,
-                           num.mark = object@seg$summary[[i]]$num.mark, bstat = object@seg$p[[i]]$bstat,
-                           pval = object@seg$p[[i]]$pval, seg.mean = round(object@seg$summary[[i]]$seg.mean -
-                                                                             object@bin$shift[i], 3), seg.median = round(object@seg$summary[[i]]$seg.median -
-                                                                                                                           object@bin$shift[i], 3), row.names = NULL)
-    }
-    names(x) <- colnames(object@fit$ratio)
-  } else if (w == 5) {
-    if (length(object@seg) == 0)
-      stop("seg unavailable, run CNV.bin")
-    if (!is.null(file))
-      if (!grepl(".seg$", file))
-        warning("filename does not end in .seg")
-    # seg format, last numeric column is used in igv
-    if(nrow(object@anno@genome) == 19) {
-      warning("GISTIC is not compatible with Illumina Methylation arrays for mice.")
-    }
-    x <- data.frame(matrix(ncol = 0, nrow = 0))
-    for (i in 1:ncol(object@fit$ratio)) {
-      y <- object@seg$summary[[i]]
-      y$seg.median <- round(object@seg$summary[[i]]$seg.median-object@bin$shift[i], 3)
-      if(any(is.element(y$chrom, c("chrX", "chrY")))){
-        y <- y[-which(is.element(y$chrom, c("chrX", "chrY"))),]
-      }
-      x <- rbind(x, y)
-    }
-    x <- x[,-c(6,7,9)]
-    colnames(x) <- c("Sample", "Chromosome", "Start_Position", "End_Position", "Num_Markers", "Seg.CN")
-    x$Chromosome <- as.numeric(gsub("chr", "", x$Chromosome))
-  } else if (w == 6) {
-    if (length(object@seg) == 0)
-      stop("seg unavailable, run CNV.segment")
-    if (!is.null(file))
-      if (!grepl(".seg$", file))
-        warning("filename does not end in .seg")
-    # seg format, last numeric column is used in igv
-    x <- data.frame(matrix(ncol = 0, nrow = 0))
-    for (i in 1:ncol(object@fit$ratio)) {
-      y <- object@seg$summary[[i]]
-      y$seg.median <- round(object@seg$summary[[i]]$seg.median -object@bin$shift[i], 3)
-      x <- rbind(x, y)
-    }
-    x <- x[,-c(6,7,9)]
-    colnames(x) <- c("Sample", "Chromosome", "Start_Position", "End_Position", "Num_Markers", "Seg.CN")
-    new_col <- replicate(nrow(x), "balanced")
-    new_col[which(x$Seg.CN >= threshold)] <- "gain"
-    new_col[which(x$Seg.CN <= -threshold)] <- "loss"
-    x$Alteration <- new_col
-  } else if (w == 7){
-    if(!is.element("amp.detail.regions",names(object@detail))){
-      stop("Please run CNV.focal")
-    }
+#' CNV.writeprobes
+#'
+#' @description Output probe-level CNV analysis results.
+#' @param object \code{CNV.analysis} object.
+#' @param file Path where output file should be written to. Defaults to \code{NULL}: No file is written, table is returned as data.frame object.
+#' @param threshold numeric. This parameter is used internally for creating summaryplots. It should not be changed. If you intend to change the threshold for summaryplots, please do so within the \code{CNV.summaryplot} function.
+#'
+#' @return if parameter \code{file} is not supplied, the table is returned as a \code{data.frame} object.
+#'
+#' @examples
+#' library(minfiData)
+#' data(MsetEx)
+#' d <- CNV.load(MsetEx)
+#' data(detail_regions)
+#' anno <- CNV.create_anno(detail_regions = detail_regions)
+#' x <- CNV.segment(CNV.detail(CNV.bin(CNV.fit(query = d['GroupB_1'],
+#'     ref = d[c('GroupA_1', 'GroupA_2', 'GroupA_3')], anno))))
+#'
+#' # output a data.frame
+#' CNV.writeprobes(x)
+#' 
+#' # output a text file
+#' tmp <- tempfile(fileext=".igv")
+#' CNV.writeprobes(x, file=tmp)
+#'
+#' @author Tim Triche \email{trichelab@@gmail.com}
+#' @export
+#'
+CNV.writeprobes <- function(object, file = NULL, threshold = 0.1) { 
+
+  if (length(object@fit) == 0) stop("fit unavailable, run CNV.fit")
+  if (!is.null(file)) if (!grepl(".igv$", file)) warning("suffix is not .igv")
+  x <- data.frame(Chromosome = as.vector(seqnames(object@anno@probes)),
+                  Start = start(object@anno@probes) - 1, 
+                  End = end(object@anno@probes),
+                  Feature = rownames(object@fit$ratio), 
+                  row.names = NULL)
+  for (i in 1:ncol(object@fit$ratio)) {
+    x <- cbind(x, round(object@fit$ratio[,i] - object@bin$shift[i], 3))
+  }
+  colnames(x) <- c("Chromosome","Start", "End","Feature", 
+                   colnames(object@fit$ratio))
+  CNV.writefile(x, file = file)
+
+}
+
+
+#' CNV.writebins
+#'
+#' @description Output bin-level CNV analysis results.
+#' @param object \code{CNV.analysis} object.
+#' @param file Path where output file should be written to. Defaults to \code{NULL}: No file is written, table is returned as data.frame object.
+#' @param threshold numeric. This parameter is used internally for creating summaryplots. It should not be changed. If you intend to change the threshold for summaryplots, please do so within the \code{CNV.summaryplot} function.
+#'
+#' @return if parameter \code{file} is not supplied, the table is returned as a \code{data.frame} object.
+#'
+#' @examples
+#' library(minfiData)
+#' data(MsetEx)
+#' d <- CNV.load(MsetEx)
+#' data(detail_regions)
+#' anno <- CNV.create_anno(detail_regions = detail_regions)
+#'
+#' x <- CNV.segment(CNV.detail(CNV.bin(CNV.fit(query = d['GroupB_1'],
+#'     ref = d[c('GroupA_1', 'GroupA_2', 'GroupA_3')], anno))))
+#'
+#' # output a data.frame
+#' CNV.writebins(x)
+#'
+#' # output text file
+#' tmp <- tempfile(fileext=".igv")
+#' CNV.writeprobes(x, file=tmp)
+#'
+#' @author Tim Triche \email{trichelab@@gmail.com}
+#' @export
+#'
+CNV.writebins <- function(object, file = NULL, threshold = 0.1) { 
+
+  if (length(object@bin) == 0) stop("bin unavailable, run CNV.bin")
+  if (!is.null(file)) if (!grepl(".igv$", file)) warning("suffix is not .igv")
+  x <- data.frame(Chromosome = as.vector(seqnames(object@anno@bins)),
+                  Start = start(object@anno@bins), 
+                  End = end(object@anno@bins),
+                  Feature = names(object@anno@bins), 
+                  row.names = NULL)
+  for (i in 1:ncol(object@fit$ratio)){
+    x <- cbind(x, round(object@bin$ratio[[i]] - object@bin$shift[i], 3))
+  }
+  colnames(x) <- c("Chromosome","Start", "End","Feature", 
+                   colnames(object@fit$ratio))
+  CNV.writefile(x, file = file)
+
+}
+
+
+#' CNV.writedetail
+#'
+#' @description Output detail-level CNV analysis results.
+#' @param object \code{CNV.analysis} object.
+#' @param file Path where output file should be written to. Defaults to \code{NULL}: No file is written, table is returned as data.frame object.
+#' @param threshold numeric. This parameter is used internally for creating summaryplots. It should not be changed. If you intend to change the threshold for summaryplots, please do so within the \code{CNV.summaryplot} function.
+#'
+#' @return if parameter \code{file} is not supplied, the table is returned as a \code{data.frame} object.
+#'
+#' @examples
+#' library(minfiData)
+#' data(MsetEx)
+#' d <- CNV.load(MsetEx)
+#' data(detail_regions)
+#' anno <- CNV.create_anno(detail_regions = detail_regions)
+#' x <- CNV.segment(CNV.detail(CNV.bin(CNV.fit(query = d['GroupB_1'],
+#'     ref = d[c('GroupA_1', 'GroupA_2', 'GroupA_3')], anno))))
+#'
+#' # output text files
+#' CNV.writedetail(x)
+#'
+#' # output text file
+#' tmp <- tempfile(fileext=".txt")
+#' CNV.writedetail(x, file=tmp)
+#'
+#' @author Tim Triche \email{trichelab@@gmail.com}
+#' @export
+#'
+CNV.writedetail <- function(object, file = NULL, threshold = 0.1) { 
+ 
+  if (length(object@detail) == 0) stop("detail unavailable, run CNV.detail")
+  if (!is.null(file)) if (!grepl(".txt$", file)) warning("suffix is not .txt")
+
+  x <- vector(mode = "list", length = ncol(object@fit$ratio))
+  for (i in 1:ncol(object@fit$ratio)) {
+    x[[i]] <- data.frame(Chromosome= as.vector(seqnames(object@anno@detail)),
+                         Start = start(object@anno@detail), 
+                         End = end(object@anno@detail),
+                         Name = names(object@detail$probes), 
+                         Sample = colnames(object@fit$ratio)[i],
+                         Value = round(object@detail$ratio[[i]] - 
+                                       object@bin$shift[i], 3), 
+                         Probes = as.numeric(object@detail$probes),
+                         row.names = NULL)
+  }
+  names(x) <- colnames(object@fit$ratio)
+  CNV.writefile(x, file = file)
+
+} 
+
+
+#' CNV.writesegments
+#'
+#' @description Output segmented CNV analysis results.
+#' @param object \code{CNV.analysis} object.
+#' @param file Path where output file should be written to. Defaults to \code{NULL}: No file is written, table is returned as data.frame object.
+#' @param threshold numeric. This parameter is used internally for creating summaryplots. It should not be changed. If you intend to change the threshold for summaryplots, please do so within the \code{CNV.summaryplot} function.
+#'
+#' @return if parameter \code{file} is not supplied, the table is returned as a \code{data.frame} object.
+#'
+#' @examples
+#' library(minfiData)
+#' data(MsetEx)
+#' d <- CNV.load(MsetEx)
+#' data(detail_regions)
+#' anno <- CNV.create_anno(detail_regions = detail_regions)
+#' x <- CNV.segment(CNV.detail(CNV.bin(CNV.fit(query = d['GroupB_1'],
+#'     ref = d[c('GroupA_1', 'GroupA_2', 'GroupA_3')], anno))))
+#'
+#' # output text files
+#' CNV.writesegments(x)
+#'
+#' # output text file
+#' tmp <- tempfile(fileext=".seg")
+#' CNV.writesegments(x, file=tmp)
+#'
+#' @author Tim Triche \email{trichelab@@gmail.com}
+#' @export
+#'
+CNV.writesegments <- function(object, file = NULL, threshold = 0.1) { 
+
+  if (length(object@seg) == 0) stop("seg unavailable, run CNV.segment")
+  if (!is.null(file)) if (!grepl(".seg$", file)) warning("suffix is not .seg")
+
+  x <- vector(mode = "list", length = ncol(object@fit$ratio))
+  for (i in 1:ncol(object@fit$ratio)) {
+    x[[i]] <- data.frame(ID = colnames(object@fit$ratio)[i], 
+                         chrom = object@seg$summary[[i]]$chrom,
+                         loc.start = object@seg$summary[[i]]$loc.start, 
+                         loc.end = object@seg$summary[[i]]$loc.end,
+                         num.mark = object@seg$summary[[i]]$num.mark, 
+                         bstat = object@seg$p[[i]]$bstat,
+                         pval = object@seg$p[[i]]$pval, 
+                         seg.mean = round(object@seg$summary[[i]]$seg.mean -
+                                          object@bin$shift[i], 3), 
+                         seg.median=round(object@seg$summary[[i]]$seg.median -
+                                          object@bin$shift[i], 3), 
+                         row.names = NULL)
+  }
+  names(x) <- colnames(object@fit$ratio)
+
+  # fix for previous hosing
+  xx <- do.call(rbind, x)
+  rownames(xx) <- NULL
+  CNV.writefile(xx, file = file)
+
+}
+
+
+#' CNV.writegistic
+#'
+#' @description Output segmented CNV analysis results for GISTIC (see Details)
+#' @param object \code{CNV.analysis} object.
+#' @param file Path where output file should be written to. Defaults to \code{NULL}: No file is written, table is returned as data.frame object.
+#' @param threshold numeric. This parameter is used internally for creating summaryplots. It should not be changed. If you intend to change the threshold for summaryplots, please do so within the \code{CNV.summaryplot} function.
+#'
+#' @return if parameter \code{file} is not supplied, the table is returned as a \code{data.frame} object.
+#'
+#' @details GISTIC is an old MATLAB script. Consider CNVRanger::populationRanges
+#'
+#' @examples
+#' library(minfiData)
+#' data(MsetEx)
+#' d <- CNV.load(MsetEx)
+#' data(detail_regions)
+#' anno <- CNV.create_anno(detail_regions = detail_regions)
+#' x <- CNV.segment(CNV.detail(CNV.bin(CNV.fit(query = d['GroupB_1'],
+#'     ref = d[c('GroupA_1', 'GroupA_2', 'GroupA_3')], anno))))
+#'
+#' # output text files
+#' CNV.writegistic(x)
+#'
+#' # output text file
+#' tmp <- tempfile(fileext=".seg")
+#' CNV.writegistic(x, file=tmp)
+#'
+#' if (require(CNVranger)) { 
+#'
+#'   out <- CNV.writegistic(x)
+#'   out$state <- with(out, ifelse(Seg.CN > .1, 3, ifelse(Seg.CN < -.1, 1, 2)))
+#'   colnames(out) <- sub("_Position", "", colnames(out))
+#'   out <- out[, c("Sample", "Chromosome", "Start", "End", "state")]
+#'   grl <- GenomicRanges::makeGRangesListFromDataFrame(out, 
+#'                                                      split.field="Sample", 
+#'                                                      keep.extra.columns=TRUE)
+#'   grl <- GenomicRanges::sort(grl)
+#'
+#'   if (length(grl) > 1) { 
+#'
+#'     # like original flavor GISTIC, estimating recurrence for significance 
+#'     cnvrs <- populationRanges(grl, density=0.1, est.recur=TRUE)
+#'     subset(cnvrs, pvalue < 0.05)
+#' 
+#'     # like GISTIC but with reciprocal overlap collapsing between samples:
+#'     cnvrs <- populationRanges(grl, density=0.1, mode="RO", est.recur=TRUE)
+#'     subset(cnvrs, pvalue < 0.05)
+#'
+#'   }
+#'
+#' }
+#'
+#' @seealso CNVRanger::populationRanges
+#' @seealso CNV.toCNVRanger
+#'
+#' @author Tim Triche \email{trichelab@@gmail.com}
+#' @export
+#'
+CNV.writegistic <- function(object, file = NULL, threshold = 0.1) { 
+
+  if (length(object@seg) == 0) stop("segments unavailable, run CNV.segment")
+  if (!is.null(file)) if (!grepl(".seg$", file)) warning("suffix is not .seg")
+
+  # seg format, last numeric column is used in igv
+  if(nrow(object@anno@genome) == 19) {
+    warning("GISTIC is not compatible with Illumina Mouse Methylation arrays.")
+  }
+
+  x <- data.frame(matrix(ncol = 0, nrow = 0))
+  for (i in 1:ncol(object@fit$ratio)) {
+    y <- object@seg$summary[[i]]
+    y$seg.median <- object@seg$summary[[i]]$seg.median - object@bin$shift[i]
+    y$seg.median <- round(y$seg.median, 3) 
+    x <- rbind(x, y)
+  }
+  x <- x[,-c(6,7,9)]
+  colnames(x) <- c("Sample", "Chromosome", "Start_Position", "End_Position", 
+                   "Num_Markers", "Seg.CN")
+  x$Chromosome <- as.numeric(gsub("chr", "", x$Chromosome))
+  new_col <- replicate(nrow(x), "balanced")
+  new_col[which(x$Seg.CN >= threshold)] <- "gain"
+  new_col[which(x$Seg.CN <= -threshold)] <- "loss"
+  x$Alteration <- new_col
+  CNV.writefile(x, file = file)
+  
+} 
+
+
+#' CNV.writefocal
+#'
+#' @description Output focal CNV analysis results
+#' @param object \code{CNV.analysis} object.
+#' @param file Path where output file should be written to. Defaults to \code{NULL}: No file is written, table is returned as data.frame object.
+#' @param threshold numeric. This parameter is used internally for creating summaryplots. It should not be changed. If you intend to change the threshold for summaryplots, please do so within the \code{CNV.summaryplot} function.
+#'
+#' @return if parameter \code{file} is not supplied, the table is returned as a \code{data.frame} object.
+#'
+#' @examples
+#' library(minfiData)
+#' data(MsetEx)
+#' d <- CNV.load(MsetEx)
+#' data(detail_regions)
+#' anno <- CNV.create_anno(detail_regions = detail_regions)
+#' x <- CNV.segment(CNV.detail(CNV.bin(CNV.fit(query = d['GroupB_1'],
+#'     ref = d[c('GroupA_1', 'GroupA_2', 'GroupA_3')], anno))))
+#'
+#' # output text files
+#' CNV.writefocal(x)
+#'
+#' # output text file
+#' tmp <- tempfile(fileext=".txt")
+#' CNV.writefocal(x, file=tmp)
+#'
+#' @author Tim Triche \email{trichelab@@gmail.com}
+#' @export
+#'
+CNV.writefocal <- function(object, file = NULL, threshold = 0.1) { 
+
+  if (!is.element("amp.detail.regions", names(object@detail))){
+    stop("Focal CNV results unavailable, please run CNV.focal")
+  }
+
+  # for file output 
+  .smush <- function(x, object) { 
+   
+    res <- object@anno@detail
+    res$thick <- NULL
+    names(res) <- res$name
+    res <- res[names(x)] 
+    res$seg.CN <- x
+    res$state <- ifelse(res$seg.CN > 0, 3, ifelse(res$seg.CN < 0, 1, 2))
+    res$call <- c("LOSS", "BALANCED", "GAIN")[res$state]
+    res <- as.data.frame(sort(res))
+    names(res) <- sub("seqnames", "chrom", names(res))
+    names(res) <- sub("name", "gene", names(res))
+    res$strand <- NULL 
+    res$width <- NULL
+    res$Sample <- NA_character_
+    return(res)
+
+  }
+
+  # for file output
+  .unroll <- function(lst) { 
+    
+    for (l in names(lst)) lst[[l]][, "Sample"] <- l
+    res <- do.call(rbind, lst) 
+    rownames(res) <- NULL 
+    return(res) 
+  
+  }
+
+  # if file to be output
+  if (!is.null(file)) {
+
+    if (!grepl(".txt$", file)) warning("suffix is not .txt")
+
+    amped <- which(vapply(object@detail$amp.detail.regions, length, 1L) > 0)
+    resamp <- .unroll(lapply(amped, 
+                             function(x) 
+                               .smush(x = object@detail$amp.detail.regions[[x]],
+                                      object = object)))
+    
+    deled <- which(vapply(object@detail$del.detail.regions, length, 1L) > 0)
+    resdel <- .unroll(lapply(deled, 
+                             function(x) 
+                               .smush(x = object@detail$del.detail.regions[[x]],
+                                      object = object)))
+
+    x <- as(sort(as(rbind(resamp, resdel), "GRanges")), "data.frame")
+    firstCols <- c("Sample", "gene", "call")
+    dropCols <- c("strand", "width", "state")
+    x <- x[, c(firstCols, setdiff(names(x), c(firstCols, dropCols)))]
+    CNV.writefile(x, file = file)
+
+  } else { 
+
+    # original (weird) format     
     x <- vector(mode='list', length = 6)
     x[[1]] <- object@detail$amp.detail.regions
     x[[2]] <- object@detail$del.detail.regions
@@ -973,20 +1300,65 @@ setMethod("CNV.write", signature(object = "CNV.analysis"), function(object, file
     x[[4]] <- object@detail$del.bins
     x[[5]] <- object@detail$amp.cancer.genes
     x[[6]] <- object@detail$del.cancer.genes
-    names(x) <- c("amplified detail regions", "deleted detail regions", "bins within amplified regions",
-                  "bins within lost regions", "amplified genes from the Cancer Gene Census", "deleted genes from the Cancer Gene Census")
-  } else{
-    stop("value for what is ambigious.")
+    names(x) <- c("amplified detail regions", 
+                  "deleted detail regions", 
+                  "bins within amplified regions", 
+                  "bins within deleted regions", 
+                  "amplified genes from the Cancer Gene Census", 
+                  "deleted genes from the Cancer Gene Census")
+    return(x) 
+
   }
-  if (is.null(file)) {
-    return(x)
-  } else {
-    if(w == 7){
-    stop("please save results from focal analysis manually")
-    }
-    write.table(x, file = file, quote = FALSE, sep = "\t", row.names = FALSE)
-  }
-})
+
+}
+
+
+#' CNV.toCNVRanger
+#'
+#' @description Output CNV results for GISTIC-like analysis in CNVRanger.
+#'
+#' @param object \code{CNV.analysis} object.
+#' @param threshold numeric. The absolute magnitude for calling a gain or loss.
+#'
+#' @return a GRangesList for CNVRanger::populationRanges (see Details)
+#'
+#' @details CNVRanger can actually handle a RaggedExperiment *or* a GRangesList,
+#'          but for simplicity we use a GRangesList for this function's output. 
+#'
+#' @examples
+#' library(minfiData)
+#' data(MsetEx)
+#' d <- CNV.load(MsetEx)
+#' data(detail_regions)
+#' anno <- CNV.create_anno(detail_regions = detail_regions)
+#' x <- CNV.segment(CNV.detail(CNV.bin(CNV.fit(query = d['GroupB_1'],
+#'        ref = d[c('GroupA_1', 'GroupA_2', 'GroupA_3')], anno))))
+#'
+#' if (require(CNVRanger) {
+#'   grl <- CNV.toCNVRanger(x, threshold = 0.1) 
+#'   if (length(grl) > 1) { 
+#'     cnvrs <- populationRanges(sort(grl), density=0.1, mode="RO", est.recur=T)
+#'     subset(cnvrs, pvalue < 0.05)
+#'   }
+#' }
+#'
+#' @author Tim Triche \email{trichelab@@gmail.com}
+#'
+#' @import GenomicRanges
+#' 
+#' @export
+#'
+CNV.toCNVRanger <- function(object, threshold = 0.1) { 
+
+  out <- CNV.writegistic(object, file = NULL, threshold = threshold) 
+  out$state <- with(out, ifelse(Seg.CN > .1, 3, ifelse(Seg.CN < -.1, 1, 2)))
+  colnames(out) <- sub("_Position", "", colnames(out))
+  out <- out[, c("Sample", "Chromosome", "Start", "End", "state")]
+  grl <- makeGRangesListFromDataFrame(out, split.field="Sample", 
+                                      keep.extra.columns=TRUE)
+  return(grl)
+
+}
 
 
 #' CNV.plotly
@@ -995,10 +1367,11 @@ setMethod("CNV.write", signature(object = "CNV.analysis"), function(object, file
 #'
 #' @param x A \code{CNV.analysis} object after \code{CNV.segment} and \code{CNV.detail} is performed.
 #' @param sample character. Name of the single sample that should be plotted. Default to first sample in the set of query samples. Check sample names with \code{colnames(object@@fit$ratio)}
-#' @export
+#'
 #' @import ggplot2
 #' @import plotly
-
+#'
+#' @export
 CNV.plotly <- function(x, sample = colnames(x@fit$ratio)[1]){
 
   if (!any(colnames(x@fit$coef) == sample)){
@@ -1114,11 +1487,8 @@ CNV.plotly <- function(x, sample = colnames(x@fit$ratio)[1]){
 
 
 # avoid silly issues with saveRDS for CNV.analysis 
-setMethod("containsOutOfMemoryData", "CNV.analysis", 
-          function(object) FALSE)
 setMethod("saveRDS", "CNV.analysis", 
           function(object, file = "", ascii = FALSE, version = NULL, compress = TRUE, refhook = NULL) {
-            if (containsOutOfMemoryData(object)) warning("Cannot serialize!")
             base::saveRDS(object, file = file, ascii = ascii, version = version,
                           compress = compress, refhook = refhook)
           })
@@ -1126,12 +1496,8 @@ setMethod("saveRDS", "CNV.analysis",
 
 
 # avoid silly issues with saveRDS for CNV.anno
-setMethod("containsOutOfMemoryData", "CNV.anno", 
-          function(object) FALSE)
 setMethod("saveRDS", "CNV.anno", 
           function(object, file = "", ascii = FALSE, version = NULL, compress = TRUE, refhook = NULL) {
-            if (containsOutOfMemoryData(object)) warning("Cannot serialize!")
             base::saveRDS(object, file = file, ascii = ascii, version = version,
                           compress = compress, refhook = refhook)
           })
-
