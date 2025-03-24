@@ -816,7 +816,7 @@ setMethod("CNV.heatmap", signature(object = "CNV.analysis"), function(object,
 })
 
 #' CNV.write
-#' @description Output CNV analysis results as table.
+#' @description Output CNV analysis results as table or to a file.
 #' @param object \code{CNV.analysis} object.
 #' @param file Path where output file should be written to. Defaults to \code{NULL}: No file is written, table is returned as data.frame object.
 #' @param what character. This should be (an unambiguous abbreviation of) one of \code{'probes'}, \code{'bins'}, \code{'detail'}, \code{'segments'}, \code{gistic} or \code{focal}. Defaults to \code{'segments'}.
@@ -858,7 +858,7 @@ setGeneric("CNV.write", function(object, ...) {
 
 #' @rdname CNV.write
 setMethod("CNV.write", signature(object = "CNV.analysis"), 
-          function(object, file = NULL, what = c("segments", "probes", "bins", "detail", "gistic", "threshold", "focal"), threshold = 0.1) {
+          function(object, file = NULL, what = c("segments", "probes", "bins", "detail", "gistic", "focal"), threshold = 0.1) {
 
             switch(match.arg(what), 
                    segments = CNV.writesegments(object, file, threshold),
@@ -866,13 +866,12 @@ setMethod("CNV.write", signature(object = "CNV.analysis"),
                    bins = CNV.writebins(object, file, threshold),
                    detail = CNV.writedetail(object, file, threshold),
                    gistic = CNV.writegistic(object, file, threshold),
-                   threshold = CNV.writethreshold(object, file, threshold),
                    focal= CNV.writefocal(object, file, threshold))
           
           })
 
 
-#' CNV.writefile
+#' CNV.writeoutput
 #'
 #' @description helper function for CNV.write* methods.
 #' @param x     results of CNV.write* methods (internally)
@@ -895,12 +894,12 @@ setMethod("CNV.write", signature(object = "CNV.analysis"),
 #'
 #' # now output that to a file
 #' tmp <- tempfile(fileext=".igv")
-#' CNV.writefile(out, file=tmp)
+#' CNV.writeoutput(out, file=tmp)
 #'
 #' @author Tim Triche \email{trichelab@@gmail.com}
 #' @export
 #'
-CNV.writefile <- function(x, file = NULL) { 
+CNV.writeoutput <- function(x, file = NULL) { 
 
   if (!is.null(file)) {
     write.table(x, file = file, quote = FALSE, sep = "\t", row.names = FALSE)
@@ -953,7 +952,7 @@ CNV.writeprobes <- function(object, file = NULL, threshold = 0.1) {
   }
   colnames(x) <- c("Chromosome","Start", "End","Feature", 
                    colnames(object@fit$ratio))
-  CNV.writefile(x, file = file)
+  CNV.writeoutput(x, file = file)
 
 }
 
@@ -1001,7 +1000,7 @@ CNV.writebins <- function(object, file = NULL, threshold = 0.1) {
   }
   colnames(x) <- c("Chromosome","Start", "End","Feature", 
                    colnames(object@fit$ratio))
-  CNV.writefile(x, file = file)
+  CNV.writeoutput(x, file = file)
 
 }
 
@@ -1052,7 +1051,7 @@ CNV.writedetail <- function(object, file = NULL, threshold = 0.1) {
                          row.names = NULL)
   }
   names(x) <- colnames(object@fit$ratio)
-  CNV.writefile(x, file = file)
+  CNV.writeoutput(x, file = file)
 
 } 
 
@@ -1107,10 +1106,10 @@ CNV.writesegments <- function(object, file = NULL, threshold = 0.1) {
   }
   names(x) <- colnames(object@fit$ratio)
 
-  # fix for previous hosing
+  # fix previous hosing
   xx <- do.call(rbind, x)
   rownames(xx) <- NULL
-  CNV.writefile(xx, file = file)
+  CNV.writeoutput(xx, file = file)
 
 }
 
@@ -1193,12 +1192,9 @@ CNV.writegistic <- function(object, file = NULL, threshold = 0.1) {
   x <- x[,-c(6,7,9)]
   colnames(x) <- c("Sample", "Chromosome", "Start_Position", "End_Position", 
                    "Num_Markers", "Seg.CN")
-  x$Chromosome <- as.numeric(gsub("chr", "", x$Chromosome))
-  new_col <- replicate(nrow(x), "balanced")
-  new_col[which(x$Seg.CN >= threshold)] <- "gain"
-  new_col[which(x$Seg.CN <= -threshold)] <- "loss"
-  x$Alteration <- new_col
-  CNV.writefile(x, file = file)
+  x$Chromosome <- gsub("chr", "", x$Chromosome) # another place we lost X and Y!
+  x$Alteration <- CNV.alteration(x$Seg.CN, threshold=threshold)
+  CNV.writeoutput(x, file = file)
   
 } 
 
@@ -1239,39 +1235,38 @@ CNV.writefocal <- function(object, file = NULL, threshold = 0.1) {
 
   # for file output 
   .smush <- function(x, object) { 
-   
+    # {{{ 
     res <- object@anno@detail
     res$thick <- NULL
     names(res) <- res$name
     res <- res[names(x)] 
     res$seg.CN <- x
-    res$state <- ifelse(res$seg.CN > 0, 3, ifelse(res$seg.CN < 0, 1, 2))
-    res$call <- c("LOSS", "BALANCED", "GAIN")[res$state]
-    res <- as.data.frame(sort(res))
+    res$Alteration <- CNV.alteration(x, threshold=threshold)
+    res <- as.data.frame(sort(subset(res, Alteration != states[2])))
     names(res) <- sub("seqnames", "chrom", names(res))
     names(res) <- sub("name", "gene", names(res))
     res$strand <- NULL 
     res$width <- NULL
     res$Sample <- NA_character_
     return(res)
-
+    # }}}
   }
 
   # for file output
   .unroll <- function(lst) { 
-    
+    # {{{
     for (l in names(lst)) lst[[l]][, "Sample"] <- l
     res <- do.call(rbind, lst) 
     rownames(res) <- NULL 
     return(res) 
-  
+    # }}} 
   }
 
-  # if file to be output
+  # if file requested
   if (!is.null(file)) {
 
     if (!grepl(".txt$", file)) warning("suffix is not .txt")
-
+    # {{{ various contortions to massage output into a usable form
     amped <- which(vapply(object@detail$amp.detail.regions, length, 1L) > 0)
     resamp <- .unroll(lapply(amped, 
                              function(x) 
@@ -1284,15 +1279,17 @@ CNV.writefocal <- function(object, file = NULL, threshold = 0.1) {
                                .smush(x = object@detail$del.detail.regions[[x]],
                                       object = object)))
 
+    # no support for the false positive generating machine known as CGC!
     x <- as(sort(as(rbind(resamp, resdel), "GRanges")), "data.frame")
-    firstCols <- c("Sample", "gene", "call")
+    firstCols <- c("Sample", "gene", "Alteration")
     dropCols <- c("strand", "width", "state")
     x <- x[, c(firstCols, setdiff(names(x), c(firstCols, dropCols)))]
-    CNV.writefile(x, file = file)
+    # }}}
+    CNV.writeoutput(x, file = file) # yeah yeah, I don't want to hear about it
 
   } else { 
 
-    # original (weird) format     
+    # {{{ original (weird) format for output
     x <- vector(mode='list', length = 6)
     x[[1]] <- object@detail$amp.detail.regions
     x[[2]] <- object@detail$del.detail.regions
@@ -1306,7 +1303,8 @@ CNV.writefocal <- function(object, file = NULL, threshold = 0.1) {
                   "bins within deleted regions", 
                   "amplified genes from the Cancer Gene Census", 
                   "deleted genes from the Cancer Gene Census")
-    return(x) 
+    # }}}
+    return(x) # see above regarding whether I want to hear about this kludge.
 
   }
 
@@ -1351,12 +1349,63 @@ CNV.writefocal <- function(object, file = NULL, threshold = 0.1) {
 CNV.toCNVRanger <- function(object, threshold = 0.1) { 
 
   out <- CNV.writegistic(object, file = NULL, threshold = threshold) 
-  out$state <- with(out, ifelse(Seg.CN > .1, 3, ifelse(Seg.CN < -.1, 1, 2)))
+  out$state <- CNV.state(out$Seg.CN)
+  out$Alteration <- NULL
   colnames(out) <- sub("_Position", "", colnames(out))
   out <- out[, c("Sample", "Chromosome", "Start", "End", "state")]
   grl <- makeGRangesListFromDataFrame(out, split.field="Sample", 
                                       keep.extra.columns=TRUE)
   return(grl)
+
+}
+
+
+#' CNV.alteration
+#' 
+#' helper function for converting +/- threshold to Alteration calls
+#' 
+#' @param x         a vector of segment CN values
+#' @param threshold a threshold magnitude to call an alteration (0.1) 
+#' @param states    a vector of state names (default "loss", "balanced", "gain")
+#'
+#' @return          a vector of alteration calls using the above 
+#'
+#' @examples
+#' Seg.CN <- c(A=-0.2, B=-0.1, C=-0.05, D=0, E=0.05, F=0.1, G=0.2)
+#' CNV.alteration(Seg.CN, threshold=.05)
+#' CNV.alteration(Seg.CN, threshold=0.1, states=c("del", "neu", "amp"))
+#' as.numeric(CNV.alteration(Seg.CN, threshold=0.2, states=c("-1", "0", "+1")))
+#' CNV.alteration(Seg.CN, threshold=1)
+#'
+#' @export
+#'
+CNV.alteration <- function(x, threshold=.1, states=c("loss","balanced","gain")){
+
+  vapply(CNV.state(x, threshold=threshold), function(x) states[x], "character")
+
+}
+
+
+#' CNV.state
+#' 
+#' helper function for converting +/- threshold to state (1/2/3) for CNVRanger
+#' 
+#' @param x         a vector of segment CN values
+#' @param threshold a threshold magnitude to call a loss or gain (0.1) 
+#'
+#' @return          a vector of state calls using the above 
+#'
+#' @examples
+#' Seg.CN <- c(A=-0.2, B=-0.1, C=-0.05, D=0, E=0.05, F=0.1, G=0.2)
+#' CNV.state(Seg.CN, threshold=0.01)
+#' CNV.state(Seg.CN, threshold=0.1)
+#' CNV.state(Seg.CN, threshold=1)
+#'
+#' @export
+#'
+CNV.state <- function(x, threshold=0.1) { 
+
+  ifelse(x <= (-1 * threshold), 1, ifelse(x >= threshold, 3, 2))
 
 }
 
