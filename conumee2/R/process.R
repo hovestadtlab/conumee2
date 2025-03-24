@@ -416,8 +416,6 @@ setMethod("CNV.focal", signature(object = "CNV.analysis"), function(object, sig_
     seqinfo(bins.c) <- Seqinfo(genome = object@anno@args$genome)
     bins <- sort(bins.c[queryHits(findOverlaps(bins.c, segs, type = "any"))])
     bins$state <- rank(km$centers[, 1])[km$cluster]
-    median.s <- sapply(split(bins$log2, bins$state), median)
-    sd.s <- sapply(split(bins$log2, bins$state), sd)
 
     seg <- lapply(seq_len(3), function(s){
       x <- reduce(bins[bins$state == s])
@@ -428,19 +426,12 @@ setMethod("CNV.focal", signature(object = "CNV.analysis"), function(object, sig_
 
     # Bootstrap to identify thresholds for deletions and amplifications, for each copy-number state
     boots <- bootRanges(bins, blockLength = blockLength, R = R, seg = seg, proportionLength = proportionLength)
-    boots$state <- factor(boots$state, levels = c(1,2,3))
-    boots.state <- split(boots$log2, list(boots$iter, boots$state), sep = " ")
 
-    boots.state.median <- mean(sapply(boots.state[grep(" 1", names(boots.state))], median)) #derive bias-adjusted median and sd estimation from bootstrap
-    boots.state.median <- c(boots.state.median, mean(sapply(boots.state[grep(" 2", names(boots.state))], median)))
-    boots.state.median <- 2*median.s - c(boots.state.median, mean(sapply(boots.state[grep(" 3", names(boots.state))], median)))
-
-    boots.state.sd <- mean(sapply(boots.state[grep(" 1", names(boots.state))], sd))
-    boots.state.sd <- c(boots.state.sd, mean(sapply(boots.state[grep(" 2", names(boots.state))], sd)))
-    boots.state.sd <- 2*sd.s - c(boots.state.sd, mean(sapply(boots.state[grep(" 3", names(boots.state))], sd)))
-
-    boots.state.low <- mapply(qnorm, boots.state.median, boots.state.sd, p=(1-conf)/2) #assume normal distribution, two-sided
-    boots.state.high <- mapply(qnorm, boots.state.median, boots.state.sd, p=1-(1-conf)/2)
+    boots.state <- split(boots$log2, boots$state)
+    boots.state.mean <- sapply(boots.state, mean)
+    boots.state.sd <- sapply(boots.state, sd)
+    boots.state.low <- mapply(qnorm, boots.state.mean, boots.state.sd, p=(1-conf)/2)    # assume normal distr, two-sided
+    boots.state.high <- mapply(qnorm, boots.state.mean, boots.state.sd, p=1-(1-conf)/2)
 
     if(length(segs.del)>=1){
       bins.seg.del <- bins.c[queryHits(findOverlaps(bins.c, segs.del, type = "any"))]
