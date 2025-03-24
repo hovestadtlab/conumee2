@@ -17,7 +17,7 @@ CNV.writethreshold(object, file = NULL, threshold = 0.1)
 if parameter \code{file} is not supplied, the table is returned as a \code{data.frame} object.
 }
 \description{
-Output thresholed CNV segments.
+Output thresholded CNV segments.
 }
 \examples{
 library(minfiData)

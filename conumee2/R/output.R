@@ -1118,7 +1118,7 @@ CNV.writesegments <- function(object, file = NULL, threshold = 0.1) {
 
 #' CNV.writethreshold
 #'
-#' @description Output thresholed CNV segments. 
+#' @description Output thresholded CNV segments. 
 #' @param object \code{CNV.analysis} object.
 #' @param file Path where output file should be written to. Defaults to \code{NULL}: No file is written, table is returned as data.frame object.
 #' @param threshold numeric. This parameter is used internally for creating summaryplots. It should not be changed. If you intend to change the threshold for summaryplots, please do so within the \code{CNV.summaryplot} function.
@@ -1142,8 +1142,8 @@ CNV.writesegments <- function(object, file = NULL, threshold = 0.1) {
 #'
 CNV.writethreshold <- function(object, file = NULL, threshold = 0.1) { 
 
-  res <- CNV.writesegments(object, file = file, threshold = threshold)
-  subset(res, abs(seg.median) >= threshold)
+  res <- CNV.writegistic(object, file = file, threshold = threshold)
+  subset(res, abs(Seg.CN) >= threshold)
 
 }
 
