@@ -1,13 +1,13 @@
 Package: conumee2
 Title: Enhanced copy-number variation analysis using Illumina DNA methylation
     arrays for humans and mice
-Version: 2.1.8
+Version: 2.1.9
 Author: Bjarne Daenekas, Volker Hovestadt, Marc Zapatka
 Maintainer: Volker Hovestadt <conumee@hovestadt.bio>
 Address: Department of Pediatric Oncology, Dana-Farber Cancer Institute, Boston, USA
-Description: This package contains a set of processing and plotting methods
-    for performing copy-number variation (CNV) analysis using Illumina 450k, EPIC, EPICv2 or Mouse
-    methylation arrays.
+Description: This package contains processing and plotting methods for 
+             copy-number variation (CNV) analysis using Illumina 450k, 
+             EPIC, EPICv2 or Mouse methylation arrays.
 Imports:
     methods,
     stats,
@@ -28,6 +28,7 @@ Suggests:
     rmarkdown,
     minfiData,
     CopyNumber450kData,
+    CNVRanger,
     RCurl
 Encoding: UTF-8
 License: GPL (>= 2)
