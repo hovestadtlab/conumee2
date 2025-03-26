@@ -4,12 +4,14 @@
 \alias{CNV.toCNVRanger}
 \title{CNV.toCNVRanger}
 \usage{
-CNV.toCNVRanger(object, threshold = 0.1)
+CNV.toCNVRanger(object, threshold = 0.1, deepthresh = 1)
 }
 \arguments{
 \item{object}{\code{CNV.analysis} object.}
 
-\item{threshold}{numeric. The absolute magnitude for calling a gain or loss.}
+\item{threshold}{numeric. Absolute magnitude for calling a gain or loss (.1)}
+
+\item{deepthresh}{numeric. Absolute magnitude for calling hiamp/deeploss (1)}
 }
 \value{
 a GRangesList for CNVRanger::populationRanges (see Details)

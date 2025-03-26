@@ -4,7 +4,7 @@
 \alias{CNV.writegistic}
 \title{CNV.writegistic}
 \usage{
-CNV.writegistic(object, file = NULL, threshold = 0.1)
+CNV.writegistic(object, file = NULL, threshold = 0.1, deepthresh = Inf)
 }
 \arguments{
 \item{object}{\code{CNV.analysis} object.}
@@ -12,6 +12,8 @@ CNV.writegistic(object, file = NULL, threshold = 0.1)
 \item{file}{Path where output file should be written to. Defaults to \code{NULL}: No file is written, table is returned as data.frame object.}
 
 \item{threshold}{numeric. This parameter is used internally for creating summaryplots. It should not be changed. If you intend to change the threshold for summaryplots, please do so within the \code{CNV.summaryplot} function.}
+
+\item{deepthresh}{numeric. magnitude for hiamp/deeploss (Inf, i.e. not used)}
 }
 \value{
 if parameter \code{file} is not supplied, the table is returned as a \code{data.frame} object.
@@ -38,8 +40,7 @@ CNV.writegistic(x)
 tmp <- tempfile(fileext=".seg")
 CNV.writegistic(x, file=tmp)
 
-if (require(CNVranger)) { 
-
+if (require(CNVRanger)) { 
   out <- CNV.writegistic(x)
   out$state <- with(out, ifelse(Seg.CN > .1, 3, ifelse(Seg.CN < -.1, 1, 2)))
   colnames(out) <- sub("_Position", "", colnames(out))
@@ -50,7 +51,6 @@ if (require(CNVranger)) {
   grl <- GenomicRanges::sort(grl)
 
   if (length(grl) > 1) { 
-
     # like original flavor GISTIC, estimating recurrence for significance 
     cnvrs <- populationRanges(grl, density=0.1, est.recur=TRUE)
     subset(cnvrs, pvalue < 0.05)
@@ -58,9 +58,7 @@ if (require(CNVranger)) {
     # like GISTIC but with reciprocal overlap collapsing between samples:
     cnvrs <- populationRanges(grl, density=0.1, mode="RO", est.recur=TRUE)
     subset(cnvrs, pvalue < 0.05)
-
   }
-
 }
 
 }

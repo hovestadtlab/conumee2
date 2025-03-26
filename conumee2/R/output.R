@@ -1170,6 +1170,7 @@ CNV.writethreshold <- function(object, file = NULL, threshold = 0.1) {
 #' @param object \code{CNV.analysis} object.
 #' @param file Path where output file should be written to. Defaults to \code{NULL}: No file is written, table is returned as data.frame object.
 #' @param threshold numeric. This parameter is used internally for creating summaryplots. It should not be changed. If you intend to change the threshold for summaryplots, please do so within the \code{CNV.summaryplot} function.
+#' @param deepthresh numeric. magnitude for hiamp/deeploss (Inf, i.e. not used)
 #'
 #' @return if parameter \code{file} is not supplied, the table is returned as a \code{data.frame} object.
 #'
@@ -1191,8 +1192,7 @@ CNV.writethreshold <- function(object, file = NULL, threshold = 0.1) {
 #' tmp <- tempfile(fileext=".seg")
 #' CNV.writegistic(x, file=tmp)
 #'
-#' if (require(CNVranger)) { 
-#'
+#' if (require(CNVRanger)) { 
 #'   out <- CNV.writegistic(x)
 #'   out$state <- with(out, ifelse(Seg.CN > .1, 3, ifelse(Seg.CN < -.1, 1, 2)))
 #'   colnames(out) <- sub("_Position", "", colnames(out))
@@ -1203,7 +1203,6 @@ CNV.writethreshold <- function(object, file = NULL, threshold = 0.1) {
 #'   grl <- GenomicRanges::sort(grl)
 #'
 #'   if (length(grl) > 1) { 
-#'
 #'     # like original flavor GISTIC, estimating recurrence for significance 
 #'     cnvrs <- populationRanges(grl, density=0.1, est.recur=TRUE)
 #'     subset(cnvrs, pvalue < 0.05)
@@ -1211,9 +1210,7 @@ CNV.writethreshold <- function(object, file = NULL, threshold = 0.1) {
 #'     # like GISTIC but with reciprocal overlap collapsing between samples:
 #'     cnvrs <- populationRanges(grl, density=0.1, mode="RO", est.recur=TRUE)
 #'     subset(cnvrs, pvalue < 0.05)
-#'
 #'   }
-#'
 #' }
 #'
 #' @seealso CNVRanger::populationRanges
@@ -1222,7 +1219,7 @@ CNV.writethreshold <- function(object, file = NULL, threshold = 0.1) {
 #' @author Tim Triche \email{trichelab@@gmail.com}
 #' @export
 #'
-CNV.writegistic <- function(object, file = NULL, threshold = 0.1) { 
+CNV.writegistic <- function(object, file = NULL, threshold = 0.1, deepthresh = Inf) { 
 
   if (length(object@seg) == 0) stop("segments unavailable, run CNV.segment")
   if (!is.null(file)) if (!grepl(".seg$", file)) warning("suffix is not .seg")
@@ -1243,7 +1240,8 @@ CNV.writegistic <- function(object, file = NULL, threshold = 0.1) {
   colnames(x) <- c("Sample", "Chromosome", "Start_Position", "End_Position", 
                    "Num_Markers", "Seg.CN")
   x$Chromosome <- gsub("chr", "", x$Chromosome) # another place we lost X and Y!
-  x$Alteration <- CNV.alteration(x$Seg.CN, threshold=threshold)
+  x$Alteration <- CNV.alteration(x$Seg.CN, 
+                                 threshold=threshold, deepthresh=deepthresh)
   CNV.writeoutput(x, file = file)
   
 } 
@@ -1364,7 +1362,8 @@ CNV.writefocal <- function(object, file = NULL, threshold = 0.1) {
 #' @description Output CNV results for GISTIC-like analysis in CNVRanger.
 #'
 #' @param object \code{CNV.analysis} object.
-#' @param threshold numeric. The absolute magnitude for calling a gain or loss.
+#' @param threshold numeric. Absolute magnitude for calling a gain or loss (.1)
+#' @param deepthresh numeric. Absolute magnitude for calling hiamp/deeploss (1)
 #'
 #' @return a GRangesList for CNVRanger::populationRanges (see Details)
 #'
@@ -1394,10 +1393,10 @@ CNV.writefocal <- function(object, file = NULL, threshold = 0.1) {
 #' 
 #' @export
 #'
-CNV.toCNVRanger <- function(object, threshold = 0.1) { 
+CNV.toCNVRanger <- function(object, threshold = 0.1, deepthresh = 1) { 
 
   out <- CNV.writegistic(object, file = NULL, threshold = threshold) 
-  out$state <- CNV.state(out$Seg.CN)
+  out$state <- CNV.state(out$Seg.CN, threshold=threshold, deepthresh=deepthresh)
   out$Alteration <- NULL
   colnames(out) <- sub("_Position", "", colnames(out))
   out <- out[, c("Sample", "Chromosome", "Start", "End", "state")]
@@ -1412,11 +1411,12 @@ CNV.toCNVRanger <- function(object, threshold = 0.1) {
 #' 
 #' helper function for converting +/- threshold to Alteration calls
 #' 
-#' @param x         a vector of segment CN values
-#' @param threshold a threshold magnitude to call an alteration (0.1) 
-#' @param states    a vector of state names (default "loss", "balanced", "gain")
+#' @param x          a vector of segment CN values
+#' @param threshold  a threshold magnitude to call an alteration (0.1) 
+#' @param states     a vector of state names (default "loss","balanced","gain")
+#' @param deepthresh magnitude for calling hiamp/deeploss (Inf)
 #'
-#' @return          a vector of alteration calls using the above 
+#' @return           a vector of alteration calls using the above 
 #'
 #' @examples
 #' Seg.CN <- c(A=-0.2, B=-0.1, C=-0.05, D=0, E=0.05, F=0.1, G=0.2)
@@ -1427,9 +1427,16 @@ CNV.toCNVRanger <- function(object, threshold = 0.1) {
 #'
 #' @export
 #'
-CNV.alteration <- function(x, threshold=.1, states=c("loss","balanced","gain")){
+CNV.alteration <- function(x, threshold=.1, states=c("loss","balanced","gain"), deepthresh=Inf) {
 
-  vapply(CNV.state(x, threshold=threshold), function(x) states[x], "character")
+  if (deepthresh < Inf) {
+    deepstate <- c(paste0("deep", states[1]), states, paste0("high", states[3]))
+    vapply(CNV.state(x, threshold=threshold, deepthresh=deepthresh), 
+           function(x) deepstate[x + 1], "character")
+  } else { 
+    vapply(CNV.state(x, threshold=threshold, deepthresh=deepthresh), 
+           function(x) states[x], "character")
+  }
 
 }
 
@@ -1438,8 +1445,9 @@ CNV.alteration <- function(x, threshold=.1, states=c("loss","balanced","gain")){
 #' 
 #' helper function for converting +/- threshold to state (1/2/3) for CNVRanger
 #' 
-#' @param x         a vector of segment CN values
-#' @param threshold a threshold magnitude to call a loss or gain (0.1) 
+#' @param x           a vector of segment CN values
+#' @param threshold   magnitude to call a loss or gain (0.1) 
+#' @param deepthresh  magnitude for calling hiamp/deeploss (1)
 #'
 #' @return          a vector of state calls using the above 
 #'
@@ -1451,9 +1459,12 @@ CNV.alteration <- function(x, threshold=.1, states=c("loss","balanced","gain")){
 #'
 #' @export
 #'
-CNV.state <- function(x, threshold=0.1) { 
+CNV.state <- function(x, threshold=0.1, deepthresh=1) { 
 
-  ifelse(x <= (-1 * threshold), 1, ifelse(x >= threshold, 3, 2))
+  ifelse(abs(x) < threshold, 2, 
+         ifelse(abs(x) < deepthresh, 
+                ifelse(x <= (-1 * threshold), 1, 3),
+                ifelse(x <= (-1 * deepthresh), 0, 4)))
 
 }
 

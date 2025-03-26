@@ -4,14 +4,21 @@
 \alias{CNV.alteration}
 \title{CNV.alteration}
 \usage{
-CNV.alteration(x, threshold = 0.1, states = c("loss", "balanced", "gain"))
+CNV.alteration(
+  x,
+  threshold = 0.1,
+  states = c("loss", "balanced", "gain"),
+  deepthresh = Inf
+)
 }
 \arguments{
 \item{x}{a vector of segment CN values}
 
 \item{threshold}{a threshold magnitude to call an alteration (0.1)}
 
-\item{states}{a vector of state names (default "loss", "balanced", "gain")}
+\item{states}{a vector of state names (default "loss","balanced","gain")}
+
+\item{deepthresh}{magnitude for calling hiamp/deeploss (Inf)}
 }
 \value{
 a vector of alteration calls using the above

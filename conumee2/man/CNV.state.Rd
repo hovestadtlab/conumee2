@@ -4,12 +4,14 @@
 \alias{CNV.state}
 \title{CNV.state}
 \usage{
-CNV.state(x, threshold = 0.1)
+CNV.state(x, threshold = 0.1, deepthresh = 1)
 }
 \arguments{
 \item{x}{a vector of segment CN values}
 
-\item{threshold}{a threshold magnitude to call a loss or gain (0.1)}
+\item{threshold}{magnitude to call a loss or gain (0.1)}
+
+\item{deepthresh}{magnitude for calling hiamp/deeploss (1)}
 }
 \value{
 a vector of state calls using the above
