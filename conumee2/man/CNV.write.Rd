@@ -7,7 +7,12 @@
 \usage{
 CNV.write(object, ...)
 
-\S4method{CNV.write}{CNV.analysis}(object, file = NULL, what = "segments", threshold = 0.1)
+\S4method{CNV.write}{CNV.analysis}(
+  object,
+  file = NULL,
+  what = c("segments", "probes", "bins", "detail", "gistic", "focal", "threshold"),
+  threshold = 0.1
+)
 }
 \arguments{
 \item{object}{\code{CNV.analysis} object.}
@@ -24,7 +29,7 @@ CNV.write(object, ...)
 if parameter \code{file} is not supplied, the table is returned as a \code{data.frame} object.
 }
 \description{
-Output CNV analysis results as table.
+Output CNV analysis results as table or to a file.
 }
 \details{
 Function shows the output of the CNV analysis with conumee 2. To use the results as input for GISTIC choose \code{what = 'gistic'}. To access the results from \code{CNV.focal}, use \code{what = focal}.
